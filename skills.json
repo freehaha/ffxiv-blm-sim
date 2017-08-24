@@ -2,29 +2,33 @@
   {
     "name": "Fire",
     "potency": 180,
+    "mp": 1200,
     "cast": 2.5,
     "gcd": true,
-    "type": "Fire"
+    "type": "FIRE"
   },
   {
     "name": "Blizzard",
+    "mp": 480,
     "potency": 180,
     "cast": 2.5,
     "gcd": true,
-    "type": "Ice"
+    "type": "ICE"
   },
   {
     "name": "Blizzard III",
+    "mp": 1440,
     "potency": 180,
     "cast": 3.5,
     "gcd": true,
-    "type": "Ice"
+    "type": "ICE"
   },
   {
     "name": "Fire III",
+	"mp": 2400,
     "potency": 180,
     "cast": 3.5,
     "gcd": true,
-    "type": "Fire"
+    "type": "FIRE"
   }
 ]
