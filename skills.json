@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Fire",
+    "potency": 180,
+    "cast": 2.5,
+    "gcd": true,
+    "type": "Fire"
+  },
+  {
+    "name": "Blizzard",
+    "potency": 180,
+    "cast": 2.5,
+    "gcd": true,
+    "type": "Ice"
+  },
+  {
+    "name": "Blizzard III",
+    "potency": 180,
+    "cast": 3.5,
+    "gcd": true,
+    "type": "Ice"
+  },
+  {
+    "name": "Fire III",
+    "potency": 180,
+    "cast": 3.5,
+    "gcd": true,
+    "type": "Fire"
+  }
+]

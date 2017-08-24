@@ -1,0 +1,50 @@
+{
+  "MaxMp": 14000,
+  "AFDuration": 13,
+  "UIDuration": 13,
+  "AFBonus": [
+    1.4,
+    1.6,
+    1.8
+  ],
+  "AFCostFire": [
+    2,
+    2,
+    2
+  ],
+  "AFCostIce": [
+    0.5,
+    0.25,
+    0.25
+  ],
+  "AFPenalty": [
+    0.9,
+    0.8,
+    0.7
+  ],
+  "AFCastBonus": [
+    1,
+    1,
+    0.5
+  ],
+  "UIMPBonus": [
+    0.32,
+    0.47,
+    0.62
+  ],
+  "UICostFire": [
+    0.5,
+    0.25,
+    0.25
+  ],
+  "UIPenalty": [
+    0.9,
+    0.8,
+    0.7
+  ],
+  "UICastBonus": [
+    1,
+    1,
+    0.5
+  ]
+}
