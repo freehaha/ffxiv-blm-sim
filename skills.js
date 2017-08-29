@@ -9,21 +9,23 @@ for(var s of skills) {
     skill.name = s.name;
     skill.cast = s.cast;
     skill.mp = s.mp;
+    var stack = Math.abs(state.stack);
+    if(stack == 0) {
+      return skill;
+    }
     if(state.phase == "ICE") {
-      console.log(state.phase);
       if(s.type == "FIRE") {
-        skill.mp = config.UICostFire[state.stack - 1] * s.mp;
-        skill.cast = config.UICastBonus[state.stack - 1] * s.cast;
+        skill.mp = config.UICostFire[stack - 1] * s.mp;
+        skill.cast = config.UICastBonus[stack - 1] * s.cast;
       } else {
         skill.mp = s.mp;
       }
     } else if(state.phase == "FIRE") {
-      console.log(state.phase);
       if(s.type == "ICE") {
-        skill.mp = config.AFCostIce[state.stack - 1] * s.mp;
-        skill.cast = config.AFCastBonus[state.stack - 1] * s.cast;
+        skill.mp = config.AFCostIce[stack - 1] * s.mp;
+        skill.cast = config.AFCastBonus[stack - 1] * s.cast;
       } else if (s.type == "FIRE") {
-        skill.mp = config.AFCostFire[state.stack - 1] * s.mp;
+        skill.mp = config.AFCostFire[stack - 1] * s.mp;
       }
     }
     return skill;
