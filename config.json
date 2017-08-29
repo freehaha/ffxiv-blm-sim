@@ -1,7 +1,8 @@
 {
+  "gcd": 2.5,
+  "animation": 0.6,
   "MaxMp": 15480,
-  "AFDuration": 13,
-  "UIDuration": 13,
+  "PhaseDuration": 13,
   "AFBonus": [
     1.4,
     1.6,
