@@ -12,11 +12,15 @@ var state = {
   animation: 0,
   phaseTimer: 0,
   time: 0,
-  recast: 0,
+  gcd: 0,
   tick: 0 - INIT_TICK,
   mp: config.MaxMp,
   potency: 0,
-  procs: {}
+  procs: {},
+  recast: {},
+  enochian: false,
+  umbralhearts: 0,
+  polyglot: 0,
 };
 
 var target = {
@@ -25,6 +29,10 @@ var target = {
 
 function cast(state, spell) {
   var timestamp = sprintf("[%06.2f]", state.time);
+  if(state.recast[spell.name] > 0) {
+    console.error("can't cast", spell.name, ": on cooldown", state.recast[spell.name]);
+    return false;
+  }
   if(state.animation > 0) {
     console.error("can't cast", spell.name, ": in animation lock");
     return false;
@@ -33,6 +41,31 @@ function cast(state, spell) {
   if(state.mp < spell.mp) {
     console.error("can't cast", spell.name, ": Not enough mp");
     return false;
+  }
+  if(spell.require) {
+    for(var r of spell.require) {
+      if(r == 'enochian') {
+        if(!state.enochian) {
+          console.error("can't cast", spell.name, ": no enochain");
+          process.exit(1);
+        }
+      } else if(r == 'ICE') {
+        if(state.stack >= 0) {
+          console.error("can't cast", spell.name, ": not in ICE phase");
+          process.exit(1);
+        }
+      } else if(r == 'FIRE') {
+        if(state.stack <= 0) {
+          console.error("can't cast", spell.name, ": not in FIRE phase");
+          process.exit(1);
+        }
+      } else if(r == 'foul') {
+        if(!state.foul) {
+          console.error("can't cast", spell.name, ": doesn't have foul");
+          process.exit(1);
+        }
+      }
+    }
   }
   if(spell.dot) {
     var d = spell.dot;
@@ -57,35 +90,55 @@ function cast(state, spell) {
       }
     }
   }
-
+  state.recast[spell.name] = spell.recast;
   state.mp -= spell.mp;
   state.potency += spell.potency;
   console.log("potency +", spell.potency);
   phase(state, spell);
   if(spell.gcd) {
-    state.recast = Math.max(spell.cast, config.gcd);
+    state.gcd = Math.max(spell.cast, config.gcd);
   }
   state.animation = spell.animation || 0.1;
   console.log("anim", state.animation);
 }
 
 function tick(state) {
+  var remove = [];
   if(state.phaseTimer > 0) {
     state.phaseTimer -= 0.01;
+    if(state.phaseTimer <= 0) {
+      state.phaseTimer = 0;
+      state.enochian = false;
+    }
   }
   state.time += 0.01;
   state.tick += 0.01;
-  state.recast -= 0.01;
-  if(state.recast < 0) {
-    state.recast = 0;
+  state.gcd -= 0.01;
+  if(state.gcd < 0) {
+    state.gcd = 0;
   }
   state.animation -= 0.01;
   if(state.animation < 0) {
     state.animation = 0;
   }
+  state.polyglot -= 0.01;
+  if(state.polyglot <= 0) {
+    state.polyglot = 30.01;
+    if(state.foul) {
+      console.log("overwriting foul!!")
+    }
+    state.foul = true;
+  }
+  /* recast timers */
+  for(var r in state.recast) {
+    state.recast[r] -= 0.01;
+    if(state.recast[r] <= 0) {
+      state.recast[r] = 0;
+    }
+  }
 
   // dots
-  var remove = [];
+  remove = [];
   var dotPotency = 0;
   for(var d in target.dots) {
     target.dots[d].duration -= 0.01;
@@ -141,27 +194,57 @@ function phase(state, spell) {
     }
     return;
   }
+  if(spell.type == 'ENOCHIAN') {
+    if(state.stack != 0) {
+      state.enochian = true;
+      state.polyglot = 30;
+    } else {
+      console.error("Enochian has no effect!");
+    }
+    return;
+  }
+  if(spell.type == 'FOUL') {
+    if(!state.foul) {
+      console.error("phase foul: no foul.")
+      process.exit(1);
+    }
+    state.foul = false;
+  }
+  if(spell.name == 'Blizzard IV') {
+    state.umbralhearts = 3;
+  }
+  if(spell.type == 'FIRE' && spell.mp > 0 && state.umbralhearts > 0) {
+    state.umbralhearts--;
+  }
+  if(spell.name == 'Fire IV') {
+    return;
+  }
   if(spell.type != 'FIRE' && spell.type != 'ICE') {
     return;
   }
   if(spell.name === 'Fire III') {
     state.stack = 3;
-    state.phaseTimer = config.PhaseDuration;
+    state.phaseTimer = config.PhaseDuration + spell.cast;
   } else if(spell.name === 'Blizzard III') {
     state.stack = -3;
-    state.phaseTimer = config.PhaseDuration;
+    state.phaseTimer = config.PhaseDuration + spell.cast;
   } else if(state.stack == 0) {
     state.stack += (spell.type==='FIRE'?1:-1);
-  } else if(state.stack > 0 && spell.type === 'FIRE') {
-    state.phaseTimer = config.PhaseDuration;
-    state.stack++;
-  } else if(state.stack < 0 && spell.type === 'ICE') {
-    state.phaseTimer = config.PhaseDuration;
-    state.stack--;
   } else {
-    console.log('reset 0');
-    state.phaseTimer = 0;
-    state.stack = 0;
+    if(state.phaseTimer - spell.cast < 0) {
+      console.error('dropping phase!!')
+      state.stack = 0;
+    }
+    if(state.stack > 0 && spell.type === 'FIRE') {
+      state.phaseTimer = config.PhaseDuration + spell.cast;
+      state.stack++;
+    } else if(state.stack < 0 && spell.type === 'ICE') {
+      state.phaseTimer = config.PhaseDuration + spell.cast;
+      state.stack--;
+    } else {
+      state.phaseTimer = 0;
+      state.stack = 0;
+    }
   }
 
   if(state.stack > 3) {
@@ -182,41 +265,56 @@ var next = function(state) {
   }
   if(state.init) {
     var s = skills['Fire III'](state);
+    if(state.stack > 0) {
+      s = skills['Enochian'](state);
+      cast(state, s);
+      state.init = false;
+      return 1;
+    }
+    var s = skills['Fire III'](state);
     cast(state, s);
-    state.init = false;
     return;
+  }
+  if(state.phaseTimer <= 0) {
+    console.error("dropped phase timer!!!!")
+    process.exit(1);
   }
   var stack = state.stack;
   if(state.stack > 0) {
-    if(state.recast > 0) {
+    if(state.gcd > 0) {
       return 1;
     }
     var f1 = skills['Fire'](state);
+    var f4 = skills['Fire IV'](state);
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
-    if(f3.mp == 0) {
-      if(state.mp < f1.mp) {
-        cast(state, b3);
-      } else {
-        console.log('use f3p');
-        cast(state, f3);
-      }
-    }
-    else if(f1.mp + b3.mp < state.mp) {
+    if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
+      cast(state, f4);
+    } else if(f3.mp == 0) {
+      console.log('use f3p');
+      cast(state, f3);
+    } else if(f1.mp + b3.mp < state.mp) {
       cast(state, f1);
     } else {
       cast(state, b3);
     }
   } else if (state.stack < 0) {
-    if(state.recast > 0) {
+    if(state.gcd > 0) {
       return 1;
     }
     var b1 = skills['Blizzard'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
+    var b4 = skills['Blizzard IV'](state);
     var convert = skills['Convert'](state);
-    if(state.mp < b1.mp) {
+    var foul = skills['Foul'](state);
+    if(state.foul && state.polyglot < 3*config.gcd) {
+      cast(state, foul);
+      return 1;
+    }
+    if(state.umbralhearts < 3 && state.mp > b4.mp) {
+      cast(state, b4);
       return 1;
     }
     if(state.mp > t3.mp && 
@@ -224,7 +322,18 @@ var next = function(state) {
       cast(state, t3);
       return 1;
     }
-    /* TODO: calculate next tick */
+    if(t3.mp == 0 && state.phaseTimer > (f3.cast + config.gcd) && target.dots['Thunder III'].duration <= 21) {
+      cast(state, t3);
+      return 1;
+    }
+    if(state.foul) {
+      cast(state, foul);
+      return 1;
+    }
+    if(state.mp < b1.mp) {
+      return 1;
+    }
+    var mpgain = Math.floor(config.MaxMp * config.UIMPBonus[Math.abs(state.stack) - 1]);
     if(state.mp < config.MaxMp) {
       cast(state, b1);
     } else {
@@ -242,7 +351,7 @@ var next = function(state) {
   return 1;
 };
 
-for(var i = 0; i < 600*100; ++i) {
+for(var i = 0; i < 900*100; ++i) {
   tick(state);
   var n = next(state);
 }

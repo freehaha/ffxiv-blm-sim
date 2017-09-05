@@ -25,7 +25,12 @@ for(var s of skills) {
       skill.type = s.type;
       skill.proc = s.proc;
       skill.gcd = s.gcd;
+      skill.recast = s.recast || config.gcd;
       skill.animation = s.animation;
+      skill.require = s.require;
+      if(s.iv) {
+        skill.cast = config.ivgcd;
+      }
       var stack = Math.abs(state.stack);
       if(s.procConditions) {
         for(var cond of s.procConditions) {
@@ -51,7 +56,9 @@ for(var s of skills) {
           skill.cast = config.AFCastBonus[stack - 1] * skill.cast;
           skill.potency = config.AFPenalty[stack - 1] * skill.potency;
         } else if (s.type == "FIRE") {
-          skill.mp = config.AFCostFire[stack - 1] * skill.mp;
+          if(state.umbralhearts == 0) {
+            skill.mp = config.AFCostFire[stack - 1] * skill.mp;
+          }
           skill.potency = config.AFBonus[stack - 1] * skill.potency;
         }
       }

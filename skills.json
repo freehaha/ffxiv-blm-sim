@@ -14,6 +14,17 @@
     "animation": 0.1
   },
   {
+    "name": "Fire IV",
+    "potency": 260,
+    "mp": 1200,
+    "cast": 2.8,
+    "gcd": true,
+    "type": "FIRE",
+    "require": ["enochian", "FIRE"],
+    "animation": 0.1,
+    "iv": true
+  },
+  {
     "name": "Blizzard",
     "mp": 480,
     "potency": 180,
@@ -30,6 +41,17 @@
     "gcd": true,
     "type": "ICE",
     "animation": 0.1
+  },
+  {
+    "name": "Blizzard IV",
+    "potency": 260,
+    "mp": 960,
+    "cast": 2.8,
+    "gcd": true,
+    "type": "ICE",
+    "require": ["enochian", "ICE"],
+    "animation": 0.1,
+    "iv": true
   },
   {
     "name": "Fire III",
@@ -83,6 +105,23 @@
     "gcd": false,
     "animation": 0.6,
     "type": "CONVERT",
-    "cd": 12
+    "recast": 12
+  },
+  {
+    "name": "Enochian",
+    "potency": 0,
+    "gcd": false,
+    "animation": 0.6,
+    "type": "ENOCHIAN",
+    "recast": 30
+  },
+  {
+    "name": "Foul",
+    "potency": 650,
+    "gcd": true,
+    "cast": 2.5,
+    "animation": 0.1,
+    "type": "FOUL",
+    "require": ["foul"]
   }
 ]
