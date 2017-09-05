@@ -289,7 +289,10 @@ var next = function(state) {
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
-    if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
+    if(t3.mp == 0 && f3.mp == 0 && state.phaseTimer > 2 * config.gcd) {
+      console.log('use t3p');
+      cast(state, t3);
+    } else if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
       cast(state, f4);
     } else if(f3.mp == 0) {
       console.log('use f3p');
