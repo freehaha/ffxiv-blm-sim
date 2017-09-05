@@ -24,6 +24,7 @@ for(var s of skills) {
       skill.mp = s.mp;
       skill.type = s.type;
       skill.proc = s.proc;
+      skill.gcd = s.gcd;
       var stack = Math.abs(state.stack);
       if(s.procConditions) {
         for(var cond of s.procConditions) {

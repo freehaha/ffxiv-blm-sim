@@ -72,5 +72,12 @@
     "cast": 2.5,
     "gcd": true,
     "type": "THUNDER"
+  },
+  {
+    "name": "Convert",
+    "potency": 0,
+    "gcd": false,
+    "animation": 0.6,
+    "type": "CONVERT"
   }
 ]

@@ -54,7 +54,10 @@ function cast(state, spell) {
   state.mp -= spell.mp;
   state.potency += spell.potency;
   phase(state, spell);
-  state.recast = Math.max(spell.cast, config.gcd);
+  if(spell.gcd) {
+    state.recast = Math.max(spell.cast, config.gcd);
+  }
+  state.animation = spell.animation || 0.1;
 }
 
 function tick(state) {
@@ -155,6 +158,9 @@ function phase(state, spell) {
 }
 
 var next = function(state) {
+  if(state.animation > 0) {
+    return 1;
+  }
   if(state.recast > 0) {
     return 1;
   }
