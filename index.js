@@ -15,6 +15,7 @@ var state = {
   tick: 0 - INIT_TICK,
   mp: config.MaxMp,
   potency: 0,
+  procs: {}
 };
 
 var target = {
@@ -34,6 +35,21 @@ function cast(state, spell) {
       potency: d.potency
     };
   }
+  if(spell.proc) {
+    if(spell.proc.chance > Math.floor(Math.random()*100)) {
+      state.procs[spell.proc.name] = spell.proc.duration;
+    }
+  }
+  if(spell.consumes) {
+    for(var consume of spell.consumes) {
+      if(!state.procs.hasOwnProperty(consume)) {
+        console.error("no such proc", consume);
+      } else {
+        delete state.procs[consume];
+      }
+    }
+  }
+
   state.mp -= spell.mp;
   state.potency += spell.potency;
   phase(state, spell);
@@ -144,7 +160,12 @@ var next = function(state) {
   if(state.stack > 0) {
     var f1 = skills['Fire'](state);
     var b3 = skills['Blizzard III'](state);
-    if(f1.mp + b3.mp < state.mp) {
+    var f3 = skills['Fire III'](state);
+    if(f3.mp == 0) {
+      console.log('use f3p');
+      cast(state, f3);
+    }
+    else if(f1.mp + b3.mp < state.mp) {
       cast(state, f1);
     } else {
       cast(state, b3);

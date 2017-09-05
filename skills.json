@@ -5,7 +5,12 @@
     "mp": 1200,
     "cast": 2.5,
     "gcd": true,
-    "type": "FIRE"
+    "type": "FIRE",
+    "proc": {
+      "name": "Firestarter",
+      "chance": 40,
+      "duration": 12
+    }
   },
   {
     "name": "Blizzard",
@@ -29,7 +34,17 @@
     "potency": 240,
     "cast": 3.5,
     "gcd": true,
-    "type": "FIRE"
+    "animation": 0.1,
+    "type": "FIRE",
+    "procConditions": [
+      {
+        "name": "Firestarter",
+        "cast": 0,
+        "mp": 0,
+        "consumes": ["Firestarter"],
+        "animation": 0.6
+      }
+    ]
   },
   {
     "name": "Thunder III",
