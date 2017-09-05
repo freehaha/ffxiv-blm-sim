@@ -32,7 +32,8 @@ function cast(state, spell) {
     var d = spell.dot;
     target.dots[spell.name] = {
       duration: d.duration,
-      potency: d.potency
+      potency: d.potency,
+      proc: d.proc,
     };
   }
   if(spell.proc) {
@@ -92,8 +93,15 @@ function tick(state) {
 
   // dot tick
   for(var d in target.dots) {
-    console.log(d, 'tick for', target.dots[d].potency);
-    state.potency += target.dots[d].potency;
+    var dot = target.dots[d];
+    console.log(d, 'tick for', dot.potency);
+    state.potency += dot.potency;
+    if(dot.proc) {
+      if(dot.proc.chance > Math.floor(Math.random()*100)) {
+        console.log(dot.proc.name, 'proc');
+        state.procs[dot.proc.name] = dot.proc.duration;
+      }
+    }
   }
 
   // restore mp
@@ -161,9 +169,14 @@ var next = function(state) {
     var f1 = skills['Fire'](state);
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
+    var t3 = skills['Thunder III'](state);
     if(f3.mp == 0) {
       console.log('use f3p');
       cast(state, f3);
+    }
+    else if(t3.mp == 0) {
+      console.log('use t3p');
+      cast(state, t3);
     }
     else if(f1.mp + b3.mp < state.mp) {
       cast(state, f1);

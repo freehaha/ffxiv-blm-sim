@@ -52,8 +52,23 @@
     "potency": 70,
     "dot": {
       "potency": 40,
-      "duration": 24
+      "duration": 24,
+      "proc": {
+        "chance": 10,
+        "name": "Thundercloud",
+        "duration": 12
+      }
     },
+    "procConditions": [
+      {
+        "name": "Thundercloud",
+        "cast": 0,
+        "mp": 0,
+        "potency": 390,
+        "consumes": ["Thundercloud"],
+        "animation": 0.6
+      }
+    ],
     "cast": 2.5,
     "gcd": true,
     "type": "THUNDER"
