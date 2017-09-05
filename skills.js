@@ -10,6 +10,7 @@ for(var s of skills) {
       skill.name = s.name;
       skill.cast = s.cast;
       skill.potency = s.potency;
+      skill.dot = s.dot;
       skill.mp = s.mp;
       skill.type = s.type;
       var stack = Math.abs(state.stack);

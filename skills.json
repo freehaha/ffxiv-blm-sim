@@ -30,5 +30,17 @@
     "cast": 3.5,
     "gcd": true,
     "type": "FIRE"
+  },
+  {
+    "name": "Thunder III",
+    "mp": 1920,
+    "potency": 70,
+    "dot": {
+      "potency": 40,
+      "duration": 24
+    },
+    "cast": 2.5,
+    "gcd": true,
+    "type": "THUNDER"
   }
 ]
