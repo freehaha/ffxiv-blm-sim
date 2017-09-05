@@ -21,10 +21,11 @@ for(var s of skills) {
       skill.cast = s.cast;
       skill.potency = s.potency;
       skill.dot = s.dot;
-      skill.mp = s.mp;
+      skill.mp = s.mp || 0;
       skill.type = s.type;
       skill.proc = s.proc;
       skill.gcd = s.gcd;
+      skill.animation = s.animation;
       var stack = Math.abs(state.stack);
       if(s.procConditions) {
         for(var cond of s.procConditions) {
@@ -42,7 +43,7 @@ for(var s of skills) {
           skill.cast = config.UICastBonus[stack - 1] * skill.cast;
           skill.potency = config.UIPenalty[stack - 1] * skill.potency;
         } else {
-          skill.mp = s.mp;
+          skill.mp = skill.mp;
         }
       } else if(state.phase == "FIRE") {
         if(s.type == "ICE") {

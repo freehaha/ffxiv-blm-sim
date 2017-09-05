@@ -1,6 +1,7 @@
 var skills = require('./skills');
 var config = require('./config.json');
 var INIT_TICK = Math.floor(Math.random()*100 + 1)/100 * 3;
+var sprintf = require('sprintf-js').sprintf;
 
 console.log('tick ', INIT_TICK);
 
@@ -23,7 +24,12 @@ var target = {
 };
 
 function cast(state, spell) {
-  console.log("casting", spell.name);
+  var timestamp = sprintf("[%06.2f]", state.time);
+  if(state.animation > 0) {
+    console.error("can't cast", spell.name, ": in animation lock");
+    return false;
+  }
+  console.log(timestamp, "casting", spell.name);
   if(state.mp < spell.mp) {
     console.error("can't cast", spell.name, ": Not enough mp");
     return false;
@@ -39,6 +45,7 @@ function cast(state, spell) {
   if(spell.proc) {
     if(spell.proc.chance > Math.floor(Math.random()*100)) {
       state.procs[spell.proc.name] = spell.proc.duration;
+      console.log("+", spell.proc.name, "proc");
     }
   }
   if(spell.consumes) {
@@ -53,11 +60,13 @@ function cast(state, spell) {
 
   state.mp -= spell.mp;
   state.potency += spell.potency;
+  console.log("potency +", spell.potency);
   phase(state, spell);
   if(spell.gcd) {
     state.recast = Math.max(spell.cast, config.gcd);
   }
   state.animation = spell.animation || 0.1;
+  console.log("anim", state.animation);
 }
 
 function tick(state) {
@@ -122,6 +131,16 @@ function tick(state) {
 
 function phase(state, spell) {
   // console.log('phase', state, spell);
+  if(spell.type == "CONVERT") {
+    if(state.stack > 0) {
+      state.stack = -1;
+      state.phase = 'ICE';
+    } else if (state.stack < 0) {
+      state.stack = 1;
+      state.phase = 'FIRE';
+    }
+    return;
+  }
   if(spell.type != 'FIRE' && spell.type != 'ICE') {
     return;
   }
@@ -161,9 +180,6 @@ var next = function(state) {
   if(state.animation > 0) {
     return 1;
   }
-  if(state.recast > 0) {
-    return 1;
-  }
   if(state.init) {
     var s = skills['Fire III'](state);
     cast(state, s);
@@ -172,17 +188,20 @@ var next = function(state) {
   }
   var stack = state.stack;
   if(state.stack > 0) {
+    if(state.recast > 0) {
+      return 1;
+    }
     var f1 = skills['Fire'](state);
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
     if(f3.mp == 0) {
-      console.log('use f3p');
-      cast(state, f3);
-    }
-    else if(t3.mp == 0) {
-      console.log('use t3p');
-      cast(state, t3);
+      if(state.mp < f1.mp) {
+        cast(state, b3);
+      } else {
+        console.log('use f3p');
+        cast(state, f3);
+      }
     }
     else if(f1.mp + b3.mp < state.mp) {
       cast(state, f1);
@@ -190,9 +209,13 @@ var next = function(state) {
       cast(state, b3);
     }
   } else if (state.stack < 0) {
+    if(state.recast > 0) {
+      return 1;
+    }
     var b1 = skills['Blizzard'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
+    var convert = skills['Convert'](state);
     if(state.mp < b1.mp) {
       return 1;
     }
@@ -201,10 +224,15 @@ var next = function(state) {
       cast(state, t3);
       return 1;
     }
+    /* TODO: calculate next tick */
     if(state.mp < config.MaxMp) {
       cast(state, b1);
     } else {
-      cast(state, f3);
+      if(f3.mp == 0) {
+        cast(state, convert);
+      } else {
+        cast(state, f3);
+      }
     }
   } else {
     console.log(state);

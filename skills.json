@@ -10,7 +10,8 @@
       "name": "Firestarter",
       "chance": 40,
       "duration": 12
-    }
+    },
+    "animation": 0.1
   },
   {
     "name": "Blizzard",
@@ -18,7 +19,8 @@
     "potency": 180,
     "cast": 2.5,
     "gcd": true,
-    "type": "ICE"
+    "type": "ICE",
+    "animation": 0.1
   },
   {
     "name": "Blizzard III",
@@ -26,7 +28,8 @@
     "potency": 180,
     "cast": 3.5,
     "gcd": true,
-    "type": "ICE"
+    "type": "ICE",
+    "animation": 0.1
   },
   {
     "name": "Fire III",
@@ -71,13 +74,15 @@
     ],
     "cast": 2.5,
     "gcd": true,
-    "type": "THUNDER"
+    "type": "THUNDER",
+    "animation": 0.1
   },
   {
     "name": "Convert",
     "potency": 0,
     "gcd": false,
     "animation": 0.6,
-    "type": "CONVERT"
+    "type": "CONVERT",
+    "cd": 12
   }
 ]
