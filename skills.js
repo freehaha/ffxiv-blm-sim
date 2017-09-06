@@ -31,6 +31,14 @@ for(var s of skills) {
       if(s.iv) {
         skill.cast = config.ivgcd;
       }
+      if(s.dot) {
+        var dotMod = parseInt(1000 * (1 / (1 - parseInt(130 * config.spellSpeed / 2170)/1000)))/1000;
+        skill.dot = {
+          duration: s.dot.duration,
+          potency: s.dot.potency * dotMod,
+          proc: s.dot.proc,
+        }
+      }
       var stack = Math.abs(state.stack);
       if(s.procConditions) {
         for(var cond of s.procConditions) {

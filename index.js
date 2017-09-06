@@ -1,5 +1,5 @@
 var skills = require('./skills');
-var config = require('./config.json');
+var config = require('./config');
 var INIT_TICK = Math.floor(Math.random()*100 + 1)/100 * 3;
 var sprintf = require('sprintf-js').sprintf;
 
