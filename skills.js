@@ -29,10 +29,10 @@ for(var s of skills) {
       skill.animation = s.animation;
       skill.require = s.require;
       if(s.iv) {
-        skill.cast = config.ivgcd;
+        skill.cast = config.ivcast;
       }
       if(s.dot) {
-        var dotMod = parseInt(1000 * (1 / (1 - parseInt(130 * config.spellSpeed / 2170)/1000)))/1000;
+        var dotMod = config.dotMod
         skill.dot = {
           duration: s.dot.duration,
           potency: s.dot.potency * dotMod,
