@@ -102,6 +102,7 @@
   {
     "name": "Convert",
     "potency": 0,
+    "cast": 0,
     "gcd": false,
     "animation": 0.6,
     "type": "CONVERT",
@@ -110,6 +111,7 @@
   {
     "name": "Enochian",
     "potency": 0,
+    "cast": 0,
     "gcd": false,
     "animation": 0.6,
     "type": "ENOCHIAN",

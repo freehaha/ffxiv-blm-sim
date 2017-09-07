@@ -1,33 +1,13 @@
 var skills = require('./skills');
 var config = require('./config');
 var sprintf = require('sprintf-js').sprintf;
+var util = require('./util.js');
+var logger = util.logger;
 
-var INIT_TICK = Math.floor(Math.random()*100 + 1)/100 * 3;
-var INIT_DOTTICK = Math.floor(Math.random()*100 + 1)/100 * 3;
+var state = require('./state');
 
-console.log('tick ', INIT_TICK);
-console.log('dot tick ', INIT_DOTTICK);
-
-var state = {
-  phase: "NONE",
-  init: true,
-  stack: 0,
-  animation: 0,
-  phaseTimer: 0,
-  time: 0,
-  gcd: 0,
-  tick: 0 - INIT_TICK,
-  dotTick: 0 - INIT_DOTTICK,
-  mp: config.MaxMp,
-  potency: 0,
-  procs: {},
-  recast: {},
-  enochian: false,
-  umbralhearts: 0,
-  polyglot: 0,
-  casting: 0,
-  foul: false,
-};
+logger.info('tick ', state.tick);
+logger.info('dot tick ', state.dotTick);
 
 var target = {
   dots: {}
@@ -36,43 +16,43 @@ var target = {
 function cast(state, spell) {
   var timestamp = sprintf("[%06.2f]", state.time);
   if(state.casting > 0) {
-    console.error("can't cast", spell.name, ": casting ", state.lastSpell.name);
+    logger.error("can't cast", spell.name, ": casting ", state.lastSpell.name);
     return false;
   }
   if(state.recast[spell.name] > 0) {
-    console.error("can't cast", spell.name, ": on cooldown", state.recast[spell.name]);
+    logger.error("can't cast", spell.name, ": on cooldown", state.recast[spell.name]);
     return false;
   }
   if(state.animation > 0) {
-    console.error("can't cast", spell.name, ": in animation lock");
+    logger.error("can't cast", spell.name, ": in animation lock");
     return false;
   }
-  console.log(timestamp, "start casting", spell.name);
   if(state.mp < spell.mp) {
-    console.error("can't cast", spell.name, ": Not enough mp");
+    logger.error("can't cast", spell.name, ": Not enough mp");
     return false;
   }
-  console.log(timestamp, "phase:", state.phase, sprintf("%0.2fs", state.phaseTimer));
+  logger.info("phase:", state.phase, sprintf("%0.2fs", state.phaseTimer));
+  logger.info("start casting", spell.name);
   if(spell.require) {
     for(var r of spell.require) {
       if(r == 'enochian') {
         if(!state.enochian) {
-          console.error("can't cast", spell.name, ": no enochain");
+          logger.error("can't cast", spell.name, ": no enochain");
           process.exit(1);
         }
       } else if(r == 'ICE') {
         if(state.stack >= 0) {
-          console.error("can't cast", spell.name, ": not in ICE phase");
+          logger.error("can't cast", spell.name, ": not in ICE phase");
           process.exit(1);
         }
       } else if(r == 'FIRE') {
         if(state.stack <= 0) {
-          console.error("can't cast", spell.name, ": not in FIRE phase");
+          logger.error("can't cast", spell.name, ": not in FIRE phase");
           process.exit(1);
         }
       } else if(r == 'foul') {
         if(!state.foul) {
-          console.error("can't cast", spell.name, ": doesn't have foul");
+          logger.error("can't cast", spell.name, ": doesn't have foul");
           process.exit(1);
         }
       }
@@ -84,18 +64,21 @@ function cast(state, spell) {
       duration: d.duration,
       potency: d.potency,
       proc: d.proc,
+      chr: config.critRate,
+      chd: config.critDamage,
+      dhr: config.dhRate,
     };
   }
   if(spell.proc) {
     if(spell.proc.chance > Math.floor(Math.random()*100)) {
       state.procs[spell.proc.name] = spell.proc.duration;
-      console.log(timestamp, "gains", spell.proc.name);
+      logger.info("gains", spell.proc.name);
     }
   }
   if(spell.consumes) {
     for(var consume of spell.consumes) {
       if(!state.procs.hasOwnProperty(consume)) {
-        console.error("no such proc", consume);
+        logger.error("no such proc", consume);
       } else {
         delete state.procs[consume];
       }
@@ -103,11 +86,13 @@ function cast(state, spell) {
   }
   state.recast[spell.name] = spell.recast;
   state.mp -= spell.mp;
-  state.potency += spell.potency;
   state.casting = spell.cast;
   state.lastSpell = spell;
   if(spell.gcd) {
     state.gcd = Math.max(spell.cast, config.gcd);
+  }
+  if(spell.cast == 0) {
+    casted(state);
   }
   state.animation = spell.animation || 0.1;
   // console.log("anim", state.animation);
@@ -120,15 +105,27 @@ function casted(state) {
   if(state.casting > 0) {
     return;
   }
-  var timestamp = sprintf("[%06.2f]", state.time);
   var spell = state.lastSpell;
-  console.log(timestamp, "cast", spell.name, "potency:", spell.potency);
+  var potency = spell.potency;
+  if(potency > 0) {
+    if(config.simulateCrit && config.critRate*1000 > Math.floor(Math.random()*1000)) {
+      potency += potency * config.critDamage;
+      logger.info("crit!");
+    }
+    if(config.simulateDirecthit && config.dhRate*1000 > Math.floor(Math.random()*1000)) {
+      potency += potency * config.dhDamage;
+      logger.info("direct hit!");
+    }
+    logger.info(sprintf("cast %s, potency: %d (from %d)", spell.name, potency, spell.potency));
+  } else {
+    logger.info(sprintf("cast %s, potency: %d", spell.name, spell.potency));
+  }
+  state.potency += potency;
   state.lastSpell = 0;
   phase(state, spell);
 }
 
 function tick(state) {
-  var timestamp = sprintf("[%06.2f]", state.time);
   var remove = [];
   if(state.phaseTimer > 0) {
     state.phaseTimer -= 0.01;
@@ -157,7 +154,7 @@ function tick(state) {
   if(state.polyglot <= 0 && state.enochian) {
     state.polyglot = 30.01;
     if(state.foul) {
-      console.log("overwriting foul!!")
+      logger.info("overwriting foul!!")
     }
     state.foul = true;
   }
@@ -184,15 +181,15 @@ function tick(state) {
 
   if(state.dotTick >= 3) {
     state.dotTick = 0;
-    console.log(timestamp, 'dot tick!');
+    logger.info('dot tick!');
     // dot tick
     for(var d in target.dots) {
       var dot = target.dots[d];
-      console.log(timestamp, d, 'tick for', dot.potency);
+      logger.info(d, 'tick for', dot.potency);
       state.potency += dot.potency;
       if(dot.proc) {
         if(dot.proc.chance > Math.floor(Math.random()*100)) {
-          console.log(timestamp, "gains", dot.proc.name);
+          logger.info("gains", dot.proc.name);
           state.procs[dot.proc.name] = dot.proc.duration;
         }
       }
@@ -201,13 +198,13 @@ function tick(state) {
   if(state.tick < 3) {
     return;
   }
-  console.log(timestamp, 'tick!');
+  logger.info('tick!');
   state.tick = 0;
 
   // restore mp
   if(state.stack < 0) {
     var mpgain = Math.floor(config.MaxMp * config.UIMPBonus[Math.abs(state.stack) - 1]);
-    console.log(timestamp, 'mp gain:', mpgain, state.mp, "=>", Math.min(state.mp+mpgain, config.MaxMp));
+    logger.info('mp gain:', mpgain, state.mp, "=>", Math.min(state.mp+mpgain, config.MaxMp));
     state.mp += mpgain;
   } else if(state.stack == 0) {
     state.mp += config.MaxMp * 0.03;
@@ -234,13 +231,13 @@ function phase(state, spell) {
       state.enochian = true;
       state.polyglot = 30;
     } else {
-      console.error("Enochian has no effect!");
+      logger.error("Enochian has no effect!");
     }
     return;
   }
   if(spell.type == 'FOUL') {
     if(!state.foul) {
-      console.error("phase foul: no foul.")
+      logger.error("phase foul: no foul.")
       process.exit(1);
     }
     state.foul = false;
@@ -267,7 +264,7 @@ function phase(state, spell) {
     state.stack += (spell.type==='FIRE'?1:-1);
   } else {
     if(state.phaseTimer <= 0) {
-      console.error('dropping phase!!')
+      logger.error('dropping phase!!')
       state.stack = 0;
     }
     if(state.stack > 0 && spell.type === 'FIRE') {
@@ -313,7 +310,7 @@ var next = function(state) {
     return;
   }
   if(state.phaseTimer <= 0) {
-    console.error("dropped phase timer!!!!")
+    logger.error("dropped phase timer!!!!")
     process.exit(1);
   }
   var stack = state.stack;
@@ -384,7 +381,7 @@ var next = function(state) {
       }
     }
   } else {
-    console.log(state);
+    logger.log(state);
     // var b3 = skills['Blizzard III'](state);
     // cast(state, b3);
   }
@@ -395,5 +392,5 @@ for(var i = 0; i < 900*100; ++i) {
   tick(state);
   var n = next(state);
 }
-console.log("potency", state.potency);
-console.log("pps", state.potency/state.time);
+logger.info("potency", state.potency);
+logger.info("pps", state.potency/state.time);

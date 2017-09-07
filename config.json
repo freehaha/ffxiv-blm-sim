@@ -1,10 +1,15 @@
 {
   "gcd": 2.5,
   "spellSpeed": 1417,
+  "crit": 1387,
+  "directhit": 1473,
+  "dhDamage": 0.25,
   "ivgcd": 2.8,
   "animation": 0.6,
   "MaxMp": 15480,
   "PhaseDuration": 13,
+  "simulateCrit": true,
+  "simulateDirecthit": true,
   "AFBonus": [
     1.4,
     1.6,
