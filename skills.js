@@ -52,7 +52,7 @@ for(var s of skills) {
       }
       if(state.phase == "ICE") {
         if(s.type == "FIRE") {
-          skill.mp = config.UICostFire[stack - 1] * skill.mp;
+          skill.mp = parseInt(config.UICostFire[stack - 1] * skill.mp);
           skill.cast = config.UICastBonus[stack - 1] * skill.cast;
           skill.potency = config.UIPenalty[stack - 1] * skill.potency;
         } else {
@@ -60,12 +60,12 @@ for(var s of skills) {
         }
       } else if(state.phase == "FIRE") {
         if(s.type == "ICE") {
-          skill.mp = config.AFCostIce[stack - 1] * skill.mp;
+          skill.mp = parseInt(config.AFCostIce[stack - 1] * skill.mp);
           skill.cast = config.AFCastBonus[stack - 1] * skill.cast;
           skill.potency = config.AFPenalty[stack - 1] * skill.potency;
         } else if (s.type == "FIRE") {
           if(state.umbralhearts == 0) {
-            skill.mp = config.AFCostFire[stack - 1] * skill.mp;
+            skill.mp = parseInt(config.AFCostFire[stack - 1] * skill.mp);
           }
           skill.potency = config.AFBonus[stack - 1] * skill.potency;
         }
