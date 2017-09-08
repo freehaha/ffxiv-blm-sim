@@ -59,6 +59,11 @@
           </tr>
         </tbody>
       </table>
+      <select data-bind="options: rotations,
+        optionsText: 'label',
+        optionsValue: 'rotation',
+        value: rotation,
+        optionsCaption: 'Pick a rotation'"></select>
       <button id="btn-run" data-bind="click: run" style="margin-top: 10px">Run</button>
     </div>
     <div style="clear: both"></div>

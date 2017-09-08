@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 4);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -73,6 +73,94 @@ module.exports = config;
 
 /***/ }),
 /* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var skills = __webpack_require__(6);
+
+var skillFuncs = {};
+
+var OVERWRITING_ATTR = ['cast', 'potency', 'mp', 'animation', 'consumes'];
+function overwrite(skill, proc) {
+  for(var attr of OVERWRITING_ATTR) {
+    if(!proc.hasOwnProperty(attr)) {
+      continue;
+    }
+    skill[attr] = proc[attr];
+  }
+}
+
+for(var s of skills) {
+  (function(s) {
+    skillFuncs[s.name] = function(state) {
+      var skill = {};
+      skill.name = s.name;
+      skill.cast = s.cast;
+      skill.potency = s.potency;
+      skill.dot = s.dot;
+      skill.mp = s.mp || 0;
+      skill.type = s.type;
+      skill.proc = s.proc;
+      skill.gcd = s.gcd;
+      skill.recast = s.recast || state.config.gcd;
+      skill.animation = s.animation;
+      skill.require = s.require;
+      if(skill.gcd && skill.cast) {
+        skill.cast = state.config.gcd;
+      }
+      if(s.iii) {
+        skill.cast = state.config.iiicast;
+      } else if(s.iv) {
+        skill.cast = state.config.ivcast;
+      }
+      if(s.dot) {
+        var dotMod = state.config.dotMod
+        skill.dot = {
+          duration: s.dot.duration,
+          potency: s.dot.potency * dotMod,
+          proc: s.dot.proc,
+        }
+      }
+      var stack = Math.abs(state.stack);
+      if(s.procConditions) {
+        for(var cond of s.procConditions) {
+          if(state.procs[cond.name] && state.procs[cond.name] > 0) {
+            overwrite(skill, cond);
+          }
+        }
+      }
+      if(stack == 0) {
+        return skill;
+      }
+      if(state.phase == "ICE") {
+        if(s.type == "FIRE") {
+          skill.mp = parseInt(state.config.UICostFire[stack - 1] * skill.mp);
+          skill.cast = state.config.UICastBonus[stack - 1] * skill.cast;
+          skill.potency = state.config.UIPenalty[stack - 1] * skill.potency;
+        } else {
+          skill.mp = skill.mp;
+        }
+      } else if(state.phase == "FIRE") {
+        if(s.type == "ICE") {
+          skill.mp = parseInt(state.config.AFCostIce[stack - 1] * skill.mp);
+          skill.cast = state.config.AFCastBonus[stack - 1] * skill.cast;
+          skill.potency = state.config.AFPenalty[stack - 1] * skill.potency;
+        } else if (s.type == "FIRE") {
+          if(state.umbralhearts == 0) {
+            skill.mp = parseInt(state.config.AFCostFire[stack - 1] * skill.mp);
+          }
+          skill.potency = state.config.AFBonus[stack - 1] * skill.potency;
+        }
+      }
+      return skill;
+    };
+  })(s);
+}
+
+module.exports = skillFuncs;
+
+
+/***/ }),
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;/* global window, exports, define */
@@ -297,7 +385,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/* global window, exports, define */
 
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var config = __webpack_require__(0);
@@ -334,11 +422,11 @@ module.exports = State;
 
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Sim = __webpack_require__(4);
-var SimWorker = __webpack_require__(11);
+var Sim = __webpack_require__(5);
+var SimWorker = __webpack_require__(12);
 var config = __webpack_require__(0);
 var worker = null;
 
@@ -388,6 +476,19 @@ function Config() {
       configKey: 'fightDuration',
     },
   ];
+
+  this.rotation = ko.observable('rotation');
+  this.rotations = [
+    {
+      label: '4.0 rotation',
+      rotation: 'rotation',
+    },
+    {
+      label: '2.0 rotation',
+      rotation: 'rotation20',
+    },
+  ];
+
   for(var c of this.configs) {
     c.value = ko.observable();
     c.value(config[c.configKey]);
@@ -437,28 +538,29 @@ Config.prototype.run = function() {
   for(var c of this.configs) {
     config[c.configKey] = c.value();
   }
-  worker.postMessage({cmd: 'start', config: config});
+  worker.postMessage({cmd: 'start', config: config, rotation: self.rotation()});
 };
 
 ko.applyBindings(new Config());
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var skills = __webpack_require__(5);
+var skills = __webpack_require__(1);
 var defaultConfig = __webpack_require__(0);
-var sprintf = __webpack_require__(1).sprintf;
+var sprintf = __webpack_require__(2).sprintf;
 var util = __webpack_require__(8);
-var State = __webpack_require__(2);
+var State = __webpack_require__(3);
 var rand = __webpack_require__(9).create();
+var defaultRotation = __webpack_require__(11);
 
 var Sim = function(options) {
   options = options || {};
   this.options = options;
   this.config = options.config || defaultConfig;
-  this.next = options.next || next;
+  this.next = options.next || defaultRotation;
   this.state = options.state || new State();
   var logger = new util.ConsoleLogger(this.state);
   this.logger = options.logger || logger;
@@ -778,138 +880,12 @@ Sim.prototype.phase = function(spell) {
   }
 }
 
-var next = function() {
-  var state = this.state;
-  var cast = this.cast.bind(this);
-  if(state.animation > 0) {
-    return 1;
-  }
-  if(state.init) {
-    if(state.casting > 0) {
-      return 0;
-    }
-    var b3 = skills['Blizzard III'](state);
-    if(state.stack < 0) {
-      var eno = skills['Enochian'](state);
-      cast(eno);
-      state.init = false;
-      return 1;
-    }
-    cast(b3);
-    return;
-  }
-  if(state.phaseTimer <= 0) {
-    this.logger.error("dropped phase timer!!!!")
-  }
-  var stack = state.stack;
-  if(state.stack > 0) {
-    if(state.gcd > 0) {
-      return 1;
-    }
-    var f1 = skills['Fire'](state);
-    var f4 = skills['Fire IV'](state);
-    var b3 = skills['Blizzard III'](state);
-    var f3 = skills['Fire III'](state);
-    var t3 = skills['Thunder III'](state);
-    var f4count = parseInt(state.mp/f4.mp);
-    if(f4count > 4) {
-      cast(f4);
-      return 1;
-    }
-    if(f4count == 4) {
-      cast(f1);
-      return 1;
-    }
-    if(f3.mp == 0 && state.procs['Firestarter'] < this.config.ivcast) {
-      cast(f3);
-      return 1;
-    }
-    if(t3.mp > 0) {
-      if(f4count == 0) {
-        cast(b3);
-        return 1;
-      }
-      cast(f4);
-      return 1;
-    } else {
-      if(f4count == 0) {
-        cast(b3);
-        return 1;
-      }
-      // have at least 1 tick of T3 or it's not present on target
-      if(this.target.dots['Thunder III'] && this.target.dots['Thunder III'].duration > 21) {
-        cast(f4);
-        return 1;
-      }
-      if(f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) { // at least 2gcd for t3p + f3p
-        cast(t3);
-        return 1;
-      }
-      if(f4count * f4.cast + b3.cast + this.config.gcd <= state.phaseTimer) {
-        cast(t3);
-        return 1;
-      }
-      cast(f4);
-    }
-  } else if (state.stack < 0) {
-    if(state.gcd > 0) {
-      return 1;
-    }
-    var b1 = skills['Blizzard'](state);
-    var f3 = skills['Fire III'](state);
-    var t3 = skills['Thunder III'](state);
-    var b4 = skills['Blizzard IV'](state);
-    var convert = skills['Convert'](state);
-    var foul = skills['Foul'](state);
-    if(state.foul && state.polyglot < 3*this.config.gcd) {
-      cast(foul);
-      return 1;
-    }
-    if(state.umbralhearts < 3 && state.mp > b4.mp) {
-      cast(b4);
-      return 1;
-    }
-    if(state.mp > t3.mp && 
-      (!this.target.dots['Thunder III'] || this.target.dots['Thunder III'].duration < 12)) {
-      cast(t3);
-      return 1;
-    }
-    if(state.foul) {
-      cast(foul);
-      return 1;
-    }
-    if(t3.mp == 0 && state.phaseTimer > (f3.cast + this.config.gcd)
-      && this.target.dots['Thunder III'].duration <= 21) {
-      cast(t3);
-      return 1;
-    }
-    if(state.mp < b1.mp) {
-      return 1;
-    }
-    var mpgain = Math.floor(this.config.MaxMp * this.config.UIMPBonus[Math.abs(state.stack) - 1]);
-    if(state.mp < this.config.MaxMp) {
-      cast(b1);
-    } else {
-      if(f3.mp == 0) {
-        cast(convert);
-      } else {
-        cast(f3);
-      }
-    }
-  } else {
-    this.logger.error("no stack!");
-    var b3 = skills['Blizzard III'](state);
-    cast(b3);
-  }
-  return 1;
-};
-
 Sim.prototype.loop = function() {
   var state = this.state;
   state.config = this.config;
   for(var i = 0; i < this.config.fightDuration*100; ++i) {
     this.tick(state);
-    var n = next.call(this);
+    var n = this.next.call(this);
   }
 }
 
@@ -969,94 +945,6 @@ module.exports = Sim;
 
 
 /***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var skills = __webpack_require__(6);
-
-var skillFuncs = {};
-
-var OVERWRITING_ATTR = ['cast', 'potency', 'mp', 'animation', 'consumes'];
-function overwrite(skill, proc) {
-  for(var attr of OVERWRITING_ATTR) {
-    if(!proc.hasOwnProperty(attr)) {
-      continue;
-    }
-    skill[attr] = proc[attr];
-  }
-}
-
-for(var s of skills) {
-  (function(s) {
-    skillFuncs[s.name] = function(state) {
-      var skill = {};
-      skill.name = s.name;
-      skill.cast = s.cast;
-      skill.potency = s.potency;
-      skill.dot = s.dot;
-      skill.mp = s.mp || 0;
-      skill.type = s.type;
-      skill.proc = s.proc;
-      skill.gcd = s.gcd;
-      skill.recast = s.recast || state.config.gcd;
-      skill.animation = s.animation;
-      skill.require = s.require;
-      if(skill.gcd && skill.cast) {
-        skill.cast = state.config.gcd;
-      }
-      if(s.iii) {
-        skill.cast = state.config.iiicast;
-      } else if(s.iv) {
-        skill.cast = state.config.ivcast;
-      }
-      if(s.dot) {
-        var dotMod = state.config.dotMod
-        skill.dot = {
-          duration: s.dot.duration,
-          potency: s.dot.potency * dotMod,
-          proc: s.dot.proc,
-        }
-      }
-      var stack = Math.abs(state.stack);
-      if(s.procConditions) {
-        for(var cond of s.procConditions) {
-          if(state.procs[cond.name] && state.procs[cond.name] > 0) {
-            overwrite(skill, cond);
-          }
-        }
-      }
-      if(stack == 0) {
-        return skill;
-      }
-      if(state.phase == "ICE") {
-        if(s.type == "FIRE") {
-          skill.mp = parseInt(state.config.UICostFire[stack - 1] * skill.mp);
-          skill.cast = state.config.UICastBonus[stack - 1] * skill.cast;
-          skill.potency = state.config.UIPenalty[stack - 1] * skill.potency;
-        } else {
-          skill.mp = skill.mp;
-        }
-      } else if(state.phase == "FIRE") {
-        if(s.type == "ICE") {
-          skill.mp = parseInt(state.config.AFCostIce[stack - 1] * skill.mp);
-          skill.cast = state.config.AFCastBonus[stack - 1] * skill.cast;
-          skill.potency = state.config.AFPenalty[stack - 1] * skill.potency;
-        } else if (s.type == "FIRE") {
-          if(state.umbralhearts == 0) {
-            skill.mp = parseInt(state.config.AFCostFire[stack - 1] * skill.mp);
-          }
-          skill.potency = state.config.AFBonus[stack - 1] * skill.potency;
-        }
-      }
-      return skill;
-    };
-  })(s);
-}
-
-module.exports = skillFuncs;
-
-
-/***/ }),
 /* 6 */
 /***/ (function(module, exports) {
 
@@ -1072,8 +960,8 @@ module.exports = {"gcd":2.5,"spellSpeed":1917,"crit":1084,"directhit":1355,"dete
 /* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var sprintf = __webpack_require__(1).sprintf;
-var state = __webpack_require__(2);
+var sprintf = __webpack_require__(2).sprintf;
+var state = __webpack_require__(3);
 
 function ConsoleLogger(state) {
   this._state = state;
@@ -1409,6 +1297,141 @@ function serializer(replacer, cycleReplacer) {
 
 /***/ }),
 /* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var skills = __webpack_require__(1);
+var next = function() {
+  var state = this.state;
+  var cast = this.cast.bind(this);
+
+  if(state.animation > 0) {
+    return 1;
+  }
+  if(state.init) {
+    if(state.casting > 0) {
+      return 0;
+    }
+    var b3 = skills['Blizzard III'](state);
+    if(state.stack < 0) {
+      var eno = skills['Enochian'](state);
+      cast(eno);
+      state.init = false;
+      return 1;
+    }
+    cast(b3);
+    return;
+  }
+  if(state.phaseTimer <= 0) {
+    this.logger.error("dropped phase timer!!!!")
+  }
+  var stack = state.stack;
+  if(state.stack > 0) {
+    if(state.gcd > 0) {
+      return 1;
+    }
+    var f1 = skills['Fire'](state);
+    var f4 = skills['Fire IV'](state);
+    var b3 = skills['Blizzard III'](state);
+    var f3 = skills['Fire III'](state);
+    var t3 = skills['Thunder III'](state);
+    var f4count = parseInt(state.mp/f4.mp);
+    if(f4count > 4) {
+      cast(f4);
+      return 1;
+    }
+    if(f4count == 4) {
+      cast(f1);
+      return 1;
+    }
+    if(f3.mp == 0 && state.procs['Firestarter'] < this.config.ivcast) {
+      cast(f3);
+      return 1;
+    }
+    if(t3.mp > 0) {
+      if(f4count == 0) {
+        cast(b3);
+        return 1;
+      }
+      cast(f4);
+      return 1;
+    } else {
+      if(f4count == 0) {
+        cast(b3);
+        return 1;
+      }
+      // have at least 1 tick of T3 or it's not present on target
+      if(this.target.dots['Thunder III'] && this.target.dots['Thunder III'].duration > 21) {
+        cast(f4);
+        return 1;
+      }
+      if(f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) { // at least 2gcd for t3p + f3p
+        cast(t3);
+        return 1;
+      }
+      if(f4count * f4.cast + b3.cast + this.config.gcd <= state.phaseTimer) {
+        cast(t3);
+        return 1;
+      }
+      cast(f4);
+    }
+  } else if (state.stack < 0) {
+    if(state.gcd > 0) {
+      return 1;
+    }
+    var b1 = skills['Blizzard'](state);
+    var f3 = skills['Fire III'](state);
+    var t3 = skills['Thunder III'](state);
+    var b4 = skills['Blizzard IV'](state);
+    var convert = skills['Convert'](state);
+    var foul = skills['Foul'](state);
+    if(state.foul && state.polyglot < 3*this.config.gcd) {
+      cast(foul);
+      return 1;
+    }
+    if(state.umbralhearts < 3 && state.mp > b4.mp) {
+      cast(b4);
+      return 1;
+    }
+    if(state.mp > t3.mp && 
+      (!this.target.dots['Thunder III'] || this.target.dots['Thunder III'].duration < 12)) {
+      cast(t3);
+      return 1;
+    }
+    if(state.foul) {
+      cast(foul);
+      return 1;
+    }
+    if(t3.mp == 0 && state.phaseTimer > (f3.cast + this.config.gcd)
+      && this.target.dots['Thunder III'].duration <= 21) {
+      cast(t3);
+      return 1;
+    }
+    if(state.mp < b1.mp) {
+      return 1;
+    }
+    var mpgain = Math.floor(this.config.MaxMp * this.config.UIMPBonus[Math.abs(state.stack) - 1]);
+    if(state.mp < this.config.MaxMp) {
+      cast(b1);
+    } else {
+      if(f3.mp == 0) {
+        cast(convert);
+      } else {
+        cast(f3);
+      }
+    }
+  } else {
+    this.logger.error("no stack!");
+    var b3 = skills['Blizzard III'](state);
+    cast(b3);
+  }
+  return 1;
+};
+
+module.exports = next;
+
+
+/***/ }),
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = function() {
