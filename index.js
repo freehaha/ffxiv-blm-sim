@@ -63,11 +63,12 @@ function cast(state, spell) {
     var d = spell.dot;
     target.dots[spell.name] = {
       duration: d.duration,
-      potency: d.potency,
+      potency: d.potency * state.dmgMod,
       proc: d.proc,
       chr: config.critRate,
       chd: config.critDamage,
       dhr: config.dhRate,
+      dhd: config.dhDamage,
     };
   }
   if(spell.proc) {
@@ -119,6 +120,7 @@ function casted(state) {
       logger.info("direct hit!");
       state.dhs += 1;
     }
+    potency *= state.dmgMod;
     state.hits += 1;
     logger.info(sprintf("cast %s, potency: %d (from %d)", spell.name, potency, spell.potency));
   } else {
@@ -129,8 +131,13 @@ function casted(state) {
   phase(state, spell);
 }
 
+function updateDamageMod(state) {
+  state.dmgMod = config.detMod;
+}
+
 function tick(state) {
   var remove = [];
+  updateDamageMod(state);
   if(state.phaseTimer > 0) {
     state.phaseTimer -= 0.01;
     if(state.phaseTimer <= 0) {
@@ -189,8 +196,19 @@ function tick(state) {
     // dot tick
     for(var d in target.dots) {
       var dot = target.dots[d];
-      logger.info(d, 'tick for', dot.potency);
-      state.potency += dot.potency;
+      var potency = dot.potency;
+      if(config.simulateCrit && dot.chr*1000 > Math.floor(Math.random()*1000)) {
+        potency += potency * dot.chd;
+        logger.info("crit!");
+        state.crits += 1;
+      }
+      if(config.simulateDirecthit && dot.dhr*1000 > Math.floor(Math.random()*1000)) {
+        potency += potency * dot.dhd;
+        logger.info("direct hit!");
+        state.dhs += 1;
+      }
+      state.potency += potency;
+      logger.info(sprintf("%s ticks for %d (from %d)", d, potency, dot.potency));
       if(dot.proc) {
         if(dot.proc.chance > Math.floor(Math.random()*100)) {
           logger.info("gains", dot.proc.name);

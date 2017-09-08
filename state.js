@@ -25,6 +25,7 @@ var state = {
   polyglot: 0,
   casting: 0,
   foul: false,
+  dmgMod: 1,
 };
 
 module.exports = state;

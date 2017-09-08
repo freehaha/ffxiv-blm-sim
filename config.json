@@ -1,8 +1,9 @@
 {
   "gcd": 2.5,
-  "spellSpeed": 1417,
-  "crit": 1387,
-  "directhit": 1473,
+  "spellSpeed": 1917,
+  "crit": 1084,
+  "directhit": 1355,
+  "determination": 1159,
   "dhDamage": 0.25,
   "ivgcd": 2.8,
   "animation": 0.6,
