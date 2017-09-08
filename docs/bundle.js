@@ -599,29 +599,36 @@ Sim.prototype.tick = function () {
   this.updateDamageMod();
   if(state.phaseTimer > 0) {
     state.phaseTimer -= 0.01;
-    if(state.phaseTimer <= 0) {
+    if(state.phaseTimer < 0.01) {
       state.phaseTimer = 0;
       state.enochian = false;
+    }
+  }
+  for(var p in state.procs) {
+    state.procs[p] -= 0.01;
+    if(state.procs[p] <= 0) {
+      this.logger.info(p, 'falls off');
+      delete state.procs[p];
     }
   }
   state.time += 0.01;
   state.tick += 0.01;
   state.dotTick += 0.01;
   state.casting -= 0.01;
-  if(state.casting <= 0) {
+  if(state.casting < 0.01) {
     state.casting = 0;
   }
   this.casted(state);
   state.gcd -= 0.01;
-  if(state.gcd < 0) {
+  if(state.gcd < 0.01) {
     state.gcd = 0;
   }
   state.animation -= 0.01;
-  if(state.animation < 0) {
+  if(state.animation < 0.01) {
     state.animation = 0;
   }
   state.polyglot -= 0.01;
-  if(state.polyglot <= 0 && state.enochian) {
+  if(state.polyglot < 0.01 && state.enochian) {
     state.polyglot = 30.01;
     if(state.foul) {
       this.logger.info("overwriting foul!!")
@@ -631,7 +638,7 @@ Sim.prototype.tick = function () {
   /* recast timers */
   for(var r in state.recast) {
     state.recast[r] -= 0.01;
-    if(state.recast[r] <= 0) {
+    if(state.recast[r] < 0.01) {
       state.recast[r] = 0;
     }
   }
@@ -640,7 +647,7 @@ Sim.prototype.tick = function () {
   remove = [];
   for(var d in this.target.dots) {
     this.target.dots[d].duration -= 0.01;
-    if(this.target.dots[d].duration <= 0) {
+    if(this.target.dots[d].duration < 0.01) {
       remove.push(d);
     }
   }
@@ -804,18 +811,45 @@ var next = function() {
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
-    if(t3.mp == 0 && f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) {
-      // console.log('use t3p');
-      cast(t3);
-    } else if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
+    var f4count = parseInt(state.mp/f4.mp);
+    if(f4count > 4) {
       cast(f4);
-    } else if(f3.mp == 0) {
-      // console.log('use f3p');
-      cast(f3);
-    } else if(f1.mp + b3.mp < state.mp) {
+      return 1;
+    }
+    if(f4count == 4) {
       cast(f1);
+      return 1;
+    }
+    if(f3.mp == 0 && state.procs['Firestarter'] < this.config.ivcast) {
+      cast(f3);
+      return 1;
+    }
+    if(t3.mp > 0) {
+      if(f4count == 0) {
+        cast(b3);
+        return 1;
+      }
+      cast(f4);
+      return 1;
     } else {
-      cast(b3);
+      if(f4count == 0) {
+        cast(b3);
+        return 1;
+      }
+      // have at least 1 tick of T3 or it's not present on target
+      if(this.target.dots['Thunder III'] && this.target.dots['Thunder III'].duration > 21) {
+        cast(f4);
+        return 1;
+      }
+      if(f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) { // at least 2gcd for t3p + f3p
+        cast(t3);
+        return 1;
+      }
+      if(f4count * f4.cast + b3.cast + this.config.gcd <= state.phaseTimer) {
+        cast(t3);
+        return 1;
+      }
+      cast(f4);
     }
   } else if (state.stack < 0) {
     if(state.gcd > 0) {
@@ -863,9 +897,9 @@ var next = function() {
       }
     }
   } else {
-    this.logger.log(state);
-    // var b3 = skills['Blizzard III'](state);
-    // cast(b3);
+    this.logger.error("no stack!");
+    var b3 = skills['Blizzard III'](state);
+    cast(b3);
   }
   return 1;
 };
@@ -899,6 +933,7 @@ Sim.prototype.configure = function(config) {
   // GCD = INT(INT(100 * Special!$B$38  * (int(Special!C$2 * (1000 - INT(Special!$F$22 * ($B20) / Special!$B$1))/1000) / 1000)) / 100)/100
   config.gcd = parseInt(parseInt(100 * 100  * (parseInt(BASE_GCD * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
   config.ivcast = parseInt(parseInt(100 * 100  * (parseInt(2800 * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
+  config.iiicast = parseInt(parseInt(100 * 100  * (parseInt(3500 * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
   // CHR = (INT(200* crit /2170)+ 50)/1000
   // CHD = (INT(200* crit /2170)+ 400)/1000
   config.critRate = (parseInt(200 * (config.crit - 364) / 2170) + 50) / 1000;
@@ -914,6 +949,7 @@ Sim.prototype.configure = function(config) {
   this.logger.info('dot mod', config.dotMod);
   this.logger.info('gcd', config.gcd);
   this.logger.info('ivcast', config.ivcast);
+  this.logger.info('iiicast', config.iiicast);
 
   this.logger.info('crit', config.crit);
   this.logger.info('crit rate', config.critRate);
@@ -965,7 +1001,12 @@ for(var s of skills) {
       skill.recast = s.recast || state.config.gcd;
       skill.animation = s.animation;
       skill.require = s.require;
-      if(s.iv) {
+      if(skill.gcd && skill.cast) {
+        skill.cast = state.config.gcd;
+      }
+      if(s.iii) {
+        skill.cast = state.config.iiicast;
+      } else if(s.iv) {
         skill.cast = state.config.ivcast;
       }
       if(s.dot) {
@@ -1019,7 +1060,7 @@ module.exports = skillFuncs;
 /* 6 */
 /***/ (function(module, exports) {
 
-module.exports = [{"name":"Fire","potency":180,"mp":1200,"cast":2.5,"gcd":true,"type":"FIRE","proc":{"name":"Firestarter","chance":40,"duration":12},"animation":0.1},{"name":"Fire IV","potency":260,"mp":1200,"cast":2.8,"gcd":true,"type":"FIRE","require":["enochian","FIRE"],"animation":0.1,"iv":true},{"name":"Blizzard","mp":480,"potency":180,"cast":2.5,"gcd":true,"type":"ICE","animation":0.1},{"name":"Blizzard III","mp":1440,"potency":180,"cast":3.5,"gcd":true,"type":"ICE","animation":0.1},{"name":"Blizzard IV","potency":260,"mp":960,"cast":2.8,"gcd":true,"type":"ICE","require":["enochian","ICE"],"animation":0.1,"iv":true},{"name":"Fire III","mp":2400,"potency":240,"cast":3.5,"gcd":true,"animation":0.1,"type":"FIRE","procConditions":[{"name":"Firestarter","cast":0,"mp":0,"consumes":["Firestarter"],"animation":0.75}]},{"name":"Thunder III","mp":1920,"potency":70,"dot":{"potency":40,"duration":24,"proc":{"chance":10,"name":"Thundercloud","duration":12}},"procConditions":[{"name":"Thundercloud","cast":0,"mp":0,"potency":390,"consumes":["Thundercloud"],"animation":0.75}],"cast":2.5,"gcd":true,"type":"THUNDER","animation":0.1},{"name":"Convert","potency":0,"cast":0,"gcd":false,"animation":0.75,"type":"CONVERT","recast":12},{"name":"Enochian","potency":0,"cast":0,"gcd":false,"animation":0.75,"type":"ENOCHIAN","recast":30},{"name":"Foul","potency":650,"gcd":true,"cast":2.5,"animation":0.1,"type":"FOUL","require":["foul"]}]
+module.exports = [{"name":"Fire","potency":180,"mp":1200,"cast":2.5,"gcd":true,"type":"FIRE","proc":{"name":"Firestarter","chance":40,"duration":12},"animation":0.1},{"name":"Fire IV","potency":260,"mp":1200,"cast":2.8,"gcd":true,"type":"FIRE","require":["enochian","FIRE"],"animation":0.1,"iv":true},{"name":"Blizzard","mp":480,"potency":180,"cast":2.5,"gcd":true,"type":"ICE","animation":0.1},{"name":"Blizzard III","mp":1440,"potency":180,"cast":3.5,"gcd":true,"type":"ICE","animation":0.1,"iii":true},{"name":"Blizzard IV","potency":260,"mp":960,"cast":2.8,"gcd":true,"type":"ICE","require":["enochian","ICE"],"animation":0.1,"iv":true},{"name":"Fire III","mp":2400,"potency":240,"cast":3.5,"gcd":true,"animation":0.1,"type":"FIRE","procConditions":[{"name":"Firestarter","cast":0,"mp":0,"consumes":["Firestarter"],"animation":0.75}],"iii":true},{"name":"Thunder III","mp":1920,"potency":70,"dot":{"potency":40,"duration":24,"proc":{"chance":10,"name":"Thundercloud","duration":12}},"procConditions":[{"name":"Thundercloud","cast":0,"mp":0,"potency":390,"consumes":["Thundercloud"],"animation":0.75}],"cast":2.5,"gcd":true,"type":"THUNDER","animation":0.1},{"name":"Convert","potency":0,"cast":0,"gcd":false,"animation":0.75,"type":"CONVERT","recast":12},{"name":"Enochian","potency":0,"cast":0,"gcd":false,"animation":0.75,"type":"ENOCHIAN","recast":30},{"name":"Foul","potency":650,"gcd":true,"cast":2.5,"animation":0.1,"type":"FOUL","require":["foul"]}]
 
 /***/ }),
 /* 7 */
