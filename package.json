@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./node_modules/.bin/webpack src/web_main.js doc/bundle.js"
+    "build": "./node_modules/.bin/webpack src/web_main.js docs/bundle.js"
   },
   "author": "freehaha",
   "license": "MIT",
