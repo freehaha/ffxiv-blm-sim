@@ -9,6 +9,11 @@ Rotation:
 	UI: (Foul if close to overwriting) B4 (T3 if duration is less than 12s) Foul (T3P)
 ```
 
+# How to use it
+There are two ways to use this.
+1. use the [web interface](https://freehaha.github.io/ffxiv-blm-sim/)
+2. clone this repo. update `src/config.json` to your liking and run `node sim.js`
+
 # LL, Swift, Sharpcast?
 Not implemented yet. Neither are buffs from external sources.
 
@@ -16,5 +21,5 @@ Not implemented yet. Neither are buffs from external sources.
 Feel free to send pull request/bug report!
 
 # Credits
-The damage formulas are stolen from  (FFXIV 70 Statistic Intervals)[https://docs.google.com/spreadsheets/d/1Y6wP1rq0b-3Oh45Oo1slFQGyKUqrkfGYk5TjNandLqE/edit#gid=782468133] Authored by /u/Nemekh of The TheoryJerks
+The damage formulas are stolen from  [FFXIV 70 Statistic Intervals](https://docs.google.com/spreadsheets/d/1Y6wP1rq0b-3Oh45Oo1slFQGyKUqrkfGYk5TjNandLqE/edit#gid=782468133) Authored by /u/Nemekh of The TheoryJerks
 
