@@ -49,6 +49,19 @@ function Config() {
       configKey: 'fightDuration',
     },
   ];
+
+  this.rotation = ko.observable('rotation');
+  this.rotations = [
+    {
+      label: '4.0 rotation',
+      rotation: 'rotation',
+    },
+    {
+      label: '2.0 rotation',
+      rotation: 'rotation20',
+    },
+  ];
+
   for(var c of this.configs) {
     c.value = ko.observable();
     c.value(config[c.configKey]);
@@ -98,7 +111,7 @@ Config.prototype.run = function() {
   for(var c of this.configs) {
     config[c.configKey] = c.value();
   }
-  worker.postMessage({cmd: 'start', config: config});
+  worker.postMessage({cmd: 'start', config: config, rotation: self.rotation()});
 };
 
 ko.applyBindings(new Config());

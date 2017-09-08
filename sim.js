@@ -1,7 +1,10 @@
 var Sim = require('./src/index');
 var defaultConfig = require('./src/config');
+var next = require('./src/rotations/rotation.js');
 
-var sim = new Sim();
+var sim = new Sim({
+  next: next,
+});
 sim.configure(defaultConfig);
 sim.loop();
 var state = sim.state;

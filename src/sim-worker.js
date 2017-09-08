@@ -39,10 +39,12 @@ Logger.prototype.error = function() {
 
 self.addEventListener('message', function(event) {
   if(event.data.cmd == 'start') {
-    config = event.data.config;
-    state = new State();
+    var config = event.data.config;
+    var state = new State();
+    var rotation = require('./rotations/' + event.data.rotation);
     sim = new Sim({
       state: state,
+      next: rotation,
       logger: new Logger(state),
     });
     sim.configure(config);
