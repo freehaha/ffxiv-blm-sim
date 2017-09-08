@@ -1,6 +1,8 @@
 var Sim = require('./src/index');
+var defaultConfig = require('./src/config');
 
 var sim = new Sim();
+sim.configure(defaultConfig);
 sim.loop();
 var state = sim.state;
 var stats = sim.stats();

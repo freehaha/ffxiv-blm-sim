@@ -1,5 +1,4 @@
 var skills = require('./skills.json');
-var config = require('./config.json');
 
 var skillFuncs = {};
 
@@ -25,14 +24,14 @@ for(var s of skills) {
       skill.type = s.type;
       skill.proc = s.proc;
       skill.gcd = s.gcd;
-      skill.recast = s.recast || config.gcd;
+      skill.recast = s.recast || state.config.gcd;
       skill.animation = s.animation;
       skill.require = s.require;
       if(s.iv) {
-        skill.cast = config.ivcast;
+        skill.cast = state.config.ivcast;
       }
       if(s.dot) {
-        var dotMod = config.dotMod
+        var dotMod = state.config.dotMod
         skill.dot = {
           duration: s.dot.duration,
           potency: s.dot.potency * dotMod,
@@ -52,22 +51,22 @@ for(var s of skills) {
       }
       if(state.phase == "ICE") {
         if(s.type == "FIRE") {
-          skill.mp = parseInt(config.UICostFire[stack - 1] * skill.mp);
-          skill.cast = config.UICastBonus[stack - 1] * skill.cast;
-          skill.potency = config.UIPenalty[stack - 1] * skill.potency;
+          skill.mp = parseInt(state.config.UICostFire[stack - 1] * skill.mp);
+          skill.cast = state.config.UICastBonus[stack - 1] * skill.cast;
+          skill.potency = state.config.UIPenalty[stack - 1] * skill.potency;
         } else {
           skill.mp = skill.mp;
         }
       } else if(state.phase == "FIRE") {
         if(s.type == "ICE") {
-          skill.mp = parseInt(config.AFCostIce[stack - 1] * skill.mp);
-          skill.cast = config.AFCastBonus[stack - 1] * skill.cast;
-          skill.potency = config.AFPenalty[stack - 1] * skill.potency;
+          skill.mp = parseInt(state.config.AFCostIce[stack - 1] * skill.mp);
+          skill.cast = state.config.AFCastBonus[stack - 1] * skill.cast;
+          skill.potency = state.config.AFPenalty[stack - 1] * skill.potency;
         } else if (s.type == "FIRE") {
           if(state.umbralhearts == 0) {
-            skill.mp = parseInt(config.AFCostFire[stack - 1] * skill.mp);
+            skill.mp = parseInt(state.config.AFCostFire[stack - 1] * skill.mp);
           }
-          skill.potency = config.AFBonus[stack - 1] * skill.potency;
+          skill.potency = state.config.AFBonus[stack - 1] * skill.potency;
         }
       }
       return skill;

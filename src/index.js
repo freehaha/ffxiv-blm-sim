@@ -1,13 +1,14 @@
 var skills = require('./skills');
-var config = require('./config');
+var defaultConfig = require('./config');
 var sprintf = require('sprintf-js').sprintf;
 var util = require('./util.js');
 var State = require('./state');
+var rand = require('random-seed').create();
 
 var Sim = function(options) {
   options = options || {};
   this.options = options;
-  this.config = options.config || config;
+  this.config = options.config || defaultConfig;
   this.next = options.next || next;
   this.state = options.state || new State();
   var logger = new util.ConsoleLogger(this.state);
@@ -67,16 +68,17 @@ Sim.prototype.cast = function(spell) {
     var d = spell.dot;
     this.target.dots[spell.name] = {
       duration: d.duration,
+      // potency: d.potency * state.dmgMod,
       potency: d.potency * state.dmgMod,
       proc: d.proc,
-      chr: config.critRate,
-      chd: config.critDamage,
-      dhr: config.dhRate,
-      dhd: config.dhDamage,
+      chr: this.config.critRate,
+      chd: this.config.critDamage,
+      dhr: this.config.dhRate,
+      dhd: this.config.dhDamage,
     };
   }
   if(spell.proc) {
-    if(spell.proc.chance > Math.floor(Math.random()*100)) {
+    if(spell.proc.chance > rand(100)) {
       state.procs[spell.proc.name] = spell.proc.duration;
       this.logger.info("gains", spell.proc.name);
     }
@@ -95,7 +97,7 @@ Sim.prototype.cast = function(spell) {
   state.casting = spell.cast;
   state.lastSpell = spell;
   if(spell.gcd) {
-    state.gcd = Math.max(spell.cast, config.gcd);
+    state.gcd = Math.max(spell.cast, this.config.gcd);
   }
   if(spell.cast == 0) {
     this.casted(state);
@@ -115,13 +117,13 @@ Sim.prototype.casted = function() {
   var spell = state.lastSpell;
   var potency = spell.potency;
   if(potency > 0) {
-    if(config.simulateCrit && config.critRate*1000 > Math.floor(Math.random()*1000)) {
-      potency += potency * config.critDamage;
+    if(this.config.simulateCrit && this.config.critRate*1000 > rand(1000)) {
+      potency += potency * this.config.critDamage;
       this.logger.info("crit!");
       state.crits += 1;
     }
-    if(config.simulateDirecthit && config.dhRate*1000 > Math.floor(Math.random()*1000)) {
-      potency += potency * config.dhDamage;
+    if(this.config.simulateDirecthit && this.config.dhRate*1000 > rand(1000)) {
+      potency += potency * this.config.dhDamage;
       this.logger.info("direct hit!");
       state.dhs += 1;
     }
@@ -136,14 +138,14 @@ Sim.prototype.casted = function() {
   this.phase(spell);
 }
 
-function updateDamageMod(state) {
-  state.dmgMod = config.detMod;
+Sim.prototype.updateDamageMod = function() {
+  this.state.dmgMod = this.config.detMod;
 }
 
 Sim.prototype.tick = function () {
   var state = this.state;
   var remove = [];
-  updateDamageMod(state);
+  this.updateDamageMod();
   if(state.phaseTimer > 0) {
     state.phaseTimer -= 0.01;
     if(state.phaseTimer <= 0) {
@@ -185,7 +187,6 @@ Sim.prototype.tick = function () {
 
   // dots
   remove = [];
-  var dotPotency = 0;
   for(var d in this.target.dots) {
     this.target.dots[d].duration -= 0.01;
     if(this.target.dots[d].duration <= 0) {
@@ -203,20 +204,20 @@ Sim.prototype.tick = function () {
     for(var d in this.target.dots) {
       var dot = this.target.dots[d];
       var potency = dot.potency;
-      if(config.simulateCrit && dot.chr*1000 > Math.floor(Math.random()*1000)) {
+      if(this.config.simulateCrit && dot.chr*1000 > rand(1000)) {
         potency += potency * dot.chd;
-        this.logger.info("crit!");
-        state.crits += 1;
+        this.logger.info("dot crit!");
+        //state.crits += 1;
       }
-      if(config.simulateDirecthit && dot.dhr*1000 > Math.floor(Math.random()*1000)) {
+      if(this.config.simulateDirecthit && dot.dhr*1000 > rand(1000)) {
         potency += potency * dot.dhd;
-        this.logger.info("direct hit!");
-        state.dhs += 1;
+        this.logger.info("dot direct hit!");
+        //state.dhs += 1;
       }
       state.potency += potency;
       this.logger.info(sprintf("%s ticks for %d (from %d)", d, potency, dot.potency));
       if(dot.proc) {
-        if(dot.proc.chance > Math.floor(Math.random()*100)) {
+        if(dot.proc.chance > rand(100)) {
           this.logger.info("gains", dot.proc.name);
           state.procs[dot.proc.name] = dot.proc.duration;
         }
@@ -231,14 +232,14 @@ Sim.prototype.tick = function () {
 
   // restore mp
   if(state.stack < 0) {
-    var mpgain = Math.floor(config.MaxMp * config.UIMPBonus[Math.abs(state.stack) - 1]);
-    this.logger.info('mp gain:', mpgain, state.mp, "=>", Math.min(state.mp+mpgain, config.MaxMp));
+    var mpgain = Math.floor(this.config.MaxMp * this.config.UIMPBonus[Math.abs(state.stack) - 1]);
+    this.logger.info('mp gain:', mpgain, state.mp, "=>", Math.min(state.mp+mpgain, this.config.MaxMp));
     state.mp += mpgain;
   } else if(state.stack == 0) {
-    state.mp += config.MaxMp * 0.03;
+    state.mp += this.config.MaxMp * 0.03;
   }
-  if(state.mp > config.MaxMp) {
-    state.mp = config.MaxMp;
+  if(state.mp > this.config.MaxMp) {
+    state.mp = this.config.MaxMp;
   }
 }
 
@@ -284,10 +285,10 @@ Sim.prototype.phase = function(spell) {
   }
   if(spell.name === 'Fire III') {
     state.stack = 3;
-    state.phaseTimer = config.PhaseDuration;
+    state.phaseTimer = this.config.PhaseDuration;
   } else if(spell.name === 'Blizzard III') {
     state.stack = -3;
-    state.phaseTimer = config.PhaseDuration;
+    state.phaseTimer = this.config.PhaseDuration;
   } else if(state.stack == 0) {
     state.stack += (spell.type==='FIRE'?1:-1);
   } else {
@@ -296,10 +297,10 @@ Sim.prototype.phase = function(spell) {
       state.stack = 0;
     }
     if(state.stack > 0 && spell.type === 'FIRE') {
-      state.phaseTimer = config.PhaseDuration;
+      state.phaseTimer = this.config.PhaseDuration;
       state.stack++;
     } else if(state.stack < 0 && spell.type === 'ICE') {
-      state.phaseTimer = config.PhaseDuration;
+      state.phaseTimer = this.config.PhaseDuration;
       state.stack--;
     } else {
       state.phaseTimer = 0;
@@ -319,9 +320,9 @@ Sim.prototype.phase = function(spell) {
   }
 }
 
-var next = function(inst) {
-  var state = inst.state;
-  var cast = inst.cast.bind(inst);
+var next = function() {
+  var state = this.state;
+  var cast = this.cast.bind(this);
   if(state.animation > 0) {
     return 1;
   }
@@ -340,7 +341,7 @@ var next = function(inst) {
     return;
   }
   if(state.phaseTimer <= 0) {
-    inst.logger.error("dropped phase timer!!!!")
+    this.logger.error("dropped phase timer!!!!")
   }
   var stack = state.stack;
   if(state.stack > 0) {
@@ -352,7 +353,7 @@ var next = function(inst) {
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
-    if(t3.mp == 0 && f3.mp == 0 && state.phaseTimer > 2 * config.gcd) {
+    if(t3.mp == 0 && f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) {
       // console.log('use t3p');
       cast(t3);
     } else if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
@@ -375,7 +376,7 @@ var next = function(inst) {
     var b4 = skills['Blizzard IV'](state);
     var convert = skills['Convert'](state);
     var foul = skills['Foul'](state);
-    if(state.foul && state.polyglot < 3*config.gcd) {
+    if(state.foul && state.polyglot < 3*this.config.gcd) {
       cast(foul);
       return 1;
     }
@@ -384,11 +385,11 @@ var next = function(inst) {
       return 1;
     }
     if(state.mp > t3.mp && 
-      (!inst.target.dots['Thunder III'] || inst.target.dots['Thunder III'].duration < 12)) {
+      (!this.target.dots['Thunder III'] || this.target.dots['Thunder III'].duration < 12)) {
       cast(t3);
       return 1;
     }
-    if(t3.mp == 0 && state.phaseTimer > (f3.cast + config.gcd) && inst.target.dots['Thunder III'].duration <= 21) {
+    if(t3.mp == 0 && state.phaseTimer > (f3.cast + this.config.gcd) && this.target.dots['Thunder III'].duration <= 21) {
       cast(t3);
       return 1;
     }
@@ -399,8 +400,8 @@ var next = function(inst) {
     if(state.mp < b1.mp) {
       return 1;
     }
-    var mpgain = Math.floor(config.MaxMp * config.UIMPBonus[Math.abs(state.stack) - 1]);
-    if(state.mp < config.MaxMp) {
+    var mpgain = Math.floor(this.config.MaxMp * this.config.UIMPBonus[Math.abs(state.stack) - 1]);
+    if(state.mp < this.config.MaxMp) {
       cast(b1);
     } else {
       if(f3.mp == 0) {
@@ -410,7 +411,7 @@ var next = function(inst) {
       }
     }
   } else {
-    inst.logger.log(state);
+    this.logger.log(state);
     // var b3 = skills['Blizzard III'](state);
     // cast(b3);
   }
@@ -419,9 +420,10 @@ var next = function(inst) {
 
 Sim.prototype.loop = function() {
   var state = this.state;
-  for(var i = 0; i < config.fightDuration*100; ++i) {
+  state.config = this.config;
+  for(var i = 0; i < this.config.fightDuration*100; ++i) {
     this.tick(state);
-    var n = next(this);
+    var n = next.call(this);
   }
 }
 
@@ -434,6 +436,44 @@ Sim.prototype.stats = function() {
     "casts": state.casts,
     "pps": state.potency/state.time,
   };
+}
+
+Sim.prototype.configure = function(config) {
+  var BASE_SPS = 364;
+  var BASE_GCD = 2500;
+  var BASE_IVGCD = 2800;
+
+  config.dotMod = parseInt(1000 * (1 / (1 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170)/1000)))/1000;
+  // GCD = INT(INT(100 * Special!$B$38  * (int(Special!C$2 * (1000 - INT(Special!$F$22 * ($B20) / Special!$B$1))/1000) / 1000)) / 100)/100
+  config.gcd = parseInt(parseInt(100 * 100  * (parseInt(BASE_GCD * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
+  config.ivcast = parseInt(parseInt(100 * 100  * (parseInt(2800 * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
+  // CHR = (INT(200* crit /2170)+ 50)/1000
+  // CHD = (INT(200* crit /2170)+ 400)/1000
+  config.critRate = (parseInt(200 * (config.crit - 364) / 2170) + 50) / 1000;
+  config.critDamage = (parseInt(200 * (config.crit - 364) / 2170) + 400) / 1000;
+
+  // INT(Special!$F$13*B6/Special!$B$1)/1000
+  config.dhRate = parseInt(550 * (config.directhit - 364) / 2170)/ 1000;
+
+  //det =(1000+INT((Special!$F$19*B2/Special!$B$1)))/1000
+  config.detMod = (1000 + parseInt((130 * (config.determination - 292) / 2170))) / 1000;
+
+  this.logger.info('spell speed', config.spellSpeed);
+  this.logger.info('dot mod', config.dotMod);
+  this.logger.info('gcd', config.gcd);
+  this.logger.info('ivcast', config.ivcast);
+
+  this.logger.info('crit', config.crit);
+  this.logger.info('crit rate', config.critRate);
+  this.logger.info('crit damage', config.critDamage);
+
+  this.logger.info('dh', config.directhit);
+  this.logger.info('dh rate', config.dhRate);
+  this.logger.info('dh damage', config.dhDamage);
+
+  this.logger.info('determination', config.determination);
+  this.logger.info('det mod', config.detMod);
+  this.config = config;
 }
 
 

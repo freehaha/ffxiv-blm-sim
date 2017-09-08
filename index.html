@@ -4,16 +4,62 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>FFXIV BLM sim</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js" charset="utf-8"></script>
   </head>
   <body>
-    <div style="float: left">
+    <div style="margin: 10px; float: left; padding: 10px;">
       Sim log:
       <div id="log" style="border: 1px solid black; height: 700px; width: 500px; overflow: auto">
         Press Run to start:
       </div>
     </div>
-    <div id="control" style="margin: 10px; float: left">
-      <button id="btn-run">Run</button>
+    <div style="margin: 10px; float: left; padding: 10px;">
+      Statictics:
+      <div id="stats" style="border: 1px solid black; height: 250px; width: 400px;">
+        <table style="border-spacing: 10px; border-collapse: separate">
+          <tr>
+            <td>Total potency</td>
+            <td><span id="ptotal">0</span></td>
+          </tr>
+          <tr>
+            <td>Crit rate</td>
+            <td><span id="chr">0</span>%</td>
+          </tr>
+          <tr>
+            <td>Directhit rate</td>
+            <td><span id="dhr">0</span>%</td>
+          </tr>
+          <tr>
+            <td>Spell cast</td>
+            <td><span id="casts">0</span></td>
+          </tr>
+          <tr>
+            <td>PPS</td>
+            <td><span id="pps">0</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <div id="control" style="margin: 10px; float: left; padding: 10px;">
+      Configs:
+      <table style="border: 1px solid black; border-spacing: 10px; border-collapse: separate">
+        <tbody data-bind="foreach: configs">
+          <tr>
+            <td data-bind="text: label"></td>
+            <!-- ko if: type == 'number' -->
+            <td>
+              <input type="text" data-bind="textInput: value" />
+            </td>
+            <!-- /ko -->
+            <!-- ko if: type == 'bool' -->
+            <td>
+              <input type="checkbox" data-bind="checked: value" />
+            </td>
+            <!-- /ko -->
+          </tr>
+        </tbody>
+      </table>
+      <button id="btn-run" data-bind="click: run" style="margin-top: 10px">Run</button>
     </div>
     <div style="clear: both"></div>
     <script src="dist/bundle.js" charset="utf-8"></script>
