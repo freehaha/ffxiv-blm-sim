@@ -2,66 +2,71 @@ var skills = require('./skills');
 var config = require('./config');
 var sprintf = require('sprintf-js').sprintf;
 var util = require('./util.js');
-var logger = util.logger;
-
 var state = require('./state');
 
-logger.info('tick ', state.tick);
-logger.info('dot tick ', state.dotTick);
+var logger = new util.ConsoleLogger(state);
 
-var target = {
-  dots: {}
-};
+var Sim = function(options) {
+  options = options || {};
+  this.options = options;
+  this.config = options.config || config;
+  this.logger = options.logger || logger;
+  this.next = options.next || next;
+  this.state = options.state || state;
+  this.logger.info('tick ', this.state.tick);
+  this.logger.info('dot tick ', this.state.dotTick);
+  this.target = {
+    dots: {}
+  };
+  return this;
+}
 
-function cast(state, spell) {
-  var timestamp = sprintf("[%06.2f]", state.time);
+
+Sim.prototype.cast = function(spell) {
+  var state = this.state;
   if(state.casting > 0) {
-    logger.error("can't cast", spell.name, ": casting ", state.lastSpell.name);
+    this.logger.error("can't cast", spell.name, ": casting ", state.lastSpell.name);
     return false;
   }
   if(state.recast[spell.name] > 0) {
-    logger.error("can't cast", spell.name, ": on cooldown", state.recast[spell.name]);
+    this.logger.error("can't cast", spell.name, ": on cooldown", state.recast[spell.name]);
     return false;
   }
   if(state.animation > 0) {
-    logger.error("can't cast", spell.name, ": in animation lock");
+    this.logger.error("can't cast", spell.name, ": in animation lock");
     return false;
   }
   if(state.mp < spell.mp) {
-    logger.error("can't cast", spell.name, ": Not enough mp");
+    this.logger.error("can't cast", spell.name, ": Not enough mp");
     return false;
   }
-  logger.info("phase:", state.phase, sprintf("%0.2fs", state.phaseTimer));
-  logger.info("start casting", spell.name);
+  this.logger.info("phase:", state.phase, sprintf("%0.2fs", state.phaseTimer));
+  this.logger.info("start casting", spell.name);
   state.casts += 1;
   if(spell.require) {
     for(var r of spell.require) {
       if(r == 'enochian') {
         if(!state.enochian) {
-          logger.error("can't cast", spell.name, ": no enochain");
-          process.exit(1);
+          this.logger.error("can't cast", spell.name, ": no enochain");
         }
       } else if(r == 'ICE') {
         if(state.stack >= 0) {
-          logger.error("can't cast", spell.name, ": not in ICE phase");
-          process.exit(1);
+          this.logger.error("can't cast", spell.name, ": not in ICE phase");
         }
       } else if(r == 'FIRE') {
         if(state.stack <= 0) {
-          logger.error("can't cast", spell.name, ": not in FIRE phase");
-          process.exit(1);
+          this.logger.error("can't cast", spell.name, ": not in FIRE phase");
         }
       } else if(r == 'foul') {
         if(!state.foul) {
-          logger.error("can't cast", spell.name, ": doesn't have foul");
-          process.exit(1);
+          this.logger.error("can't cast", spell.name, ": doesn't have foul");
         }
       }
     }
   }
   if(spell.dot) {
     var d = spell.dot;
-    target.dots[spell.name] = {
+    this.target.dots[spell.name] = {
       duration: d.duration,
       potency: d.potency * state.dmgMod,
       proc: d.proc,
@@ -74,13 +79,13 @@ function cast(state, spell) {
   if(spell.proc) {
     if(spell.proc.chance > Math.floor(Math.random()*100)) {
       state.procs[spell.proc.name] = spell.proc.duration;
-      logger.info("gains", spell.proc.name);
+      this.logger.info("gains", spell.proc.name);
     }
   }
   if(spell.consumes) {
     for(var consume of spell.consumes) {
       if(!state.procs.hasOwnProperty(consume)) {
-        logger.error("no such proc", consume);
+        this.logger.error("no such proc", consume);
       } else {
         delete state.procs[consume];
       }
@@ -94,13 +99,14 @@ function cast(state, spell) {
     state.gcd = Math.max(spell.cast, config.gcd);
   }
   if(spell.cast == 0) {
-    casted(state);
+    this.casted(state);
   }
   state.animation = spell.animation || 0.1;
   // console.log("anim", state.animation);
 }
 
-function casted(state) {
+Sim.prototype.casted = function() {
+  var state = this.state;
   if(!state.lastSpell) {
     return;
   }
@@ -112,30 +118,31 @@ function casted(state) {
   if(potency > 0) {
     if(config.simulateCrit && config.critRate*1000 > Math.floor(Math.random()*1000)) {
       potency += potency * config.critDamage;
-      logger.info("crit!");
+      this.logger.info("crit!");
       state.crits += 1;
     }
     if(config.simulateDirecthit && config.dhRate*1000 > Math.floor(Math.random()*1000)) {
       potency += potency * config.dhDamage;
-      logger.info("direct hit!");
+      this.logger.info("direct hit!");
       state.dhs += 1;
     }
     potency *= state.dmgMod;
     state.hits += 1;
-    logger.info(sprintf("cast %s, potency: %d (from %d)", spell.name, potency, spell.potency));
+    this.logger.info(sprintf("cast %s, potency: %d (from %d)", spell.name, potency, spell.potency));
   } else {
-    logger.info(sprintf("cast %s, potency: %d", spell.name, spell.potency));
+    this.logger.info(sprintf("cast %s, potency: %d", spell.name, spell.potency));
   }
   state.potency += potency;
   state.lastSpell = 0;
-  phase(state, spell);
+  this.phase(spell);
 }
 
 function updateDamageMod(state) {
   state.dmgMod = config.detMod;
 }
 
-function tick(state) {
+Sim.prototype.tick = function () {
+  var state = this.state;
   var remove = [];
   updateDamageMod(state);
   if(state.phaseTimer > 0) {
@@ -152,7 +159,7 @@ function tick(state) {
   if(state.casting <= 0) {
     state.casting = 0;
   }
-  casted(state);
+  this.casted(state);
   state.gcd -= 0.01;
   if(state.gcd < 0) {
     state.gcd = 0;
@@ -165,7 +172,7 @@ function tick(state) {
   if(state.polyglot <= 0 && state.enochian) {
     state.polyglot = 30.01;
     if(state.foul) {
-      logger.info("overwriting foul!!")
+      this.logger.info("overwriting foul!!")
     }
     state.foul = true;
   }
@@ -180,38 +187,38 @@ function tick(state) {
   // dots
   remove = [];
   var dotPotency = 0;
-  for(var d in target.dots) {
-    target.dots[d].duration -= 0.01;
-    if(target.dots[d].duration <= 0) {
+  for(var d in this.target.dots) {
+    this.target.dots[d].duration -= 0.01;
+    if(this.target.dots[d].duration <= 0) {
       remove.push(d);
     }
   }
   for(var r of remove) {
-    delete target.dots[r];
+    delete this.target.dots[r];
   }
 
   if(state.dotTick >= 3) {
     state.dotTick = 0;
-    logger.info('dot tick!');
+    this.logger.info('dot tick!');
     // dot tick
-    for(var d in target.dots) {
-      var dot = target.dots[d];
+    for(var d in this.target.dots) {
+      var dot = this.target.dots[d];
       var potency = dot.potency;
       if(config.simulateCrit && dot.chr*1000 > Math.floor(Math.random()*1000)) {
         potency += potency * dot.chd;
-        logger.info("crit!");
+        this.logger.info("crit!");
         state.crits += 1;
       }
       if(config.simulateDirecthit && dot.dhr*1000 > Math.floor(Math.random()*1000)) {
         potency += potency * dot.dhd;
-        logger.info("direct hit!");
+        this.logger.info("direct hit!");
         state.dhs += 1;
       }
       state.potency += potency;
-      logger.info(sprintf("%s ticks for %d (from %d)", d, potency, dot.potency));
+      this.logger.info(sprintf("%s ticks for %d (from %d)", d, potency, dot.potency));
       if(dot.proc) {
         if(dot.proc.chance > Math.floor(Math.random()*100)) {
-          logger.info("gains", dot.proc.name);
+          this.logger.info("gains", dot.proc.name);
           state.procs[dot.proc.name] = dot.proc.duration;
         }
       }
@@ -220,13 +227,13 @@ function tick(state) {
   if(state.tick < 3) {
     return;
   }
-  logger.info('tick!');
+  this.logger.info('tick!');
   state.tick = 0;
 
   // restore mp
   if(state.stack < 0) {
     var mpgain = Math.floor(config.MaxMp * config.UIMPBonus[Math.abs(state.stack) - 1]);
-    logger.info('mp gain:', mpgain, state.mp, "=>", Math.min(state.mp+mpgain, config.MaxMp));
+    this.logger.info('mp gain:', mpgain, state.mp, "=>", Math.min(state.mp+mpgain, config.MaxMp));
     state.mp += mpgain;
   } else if(state.stack == 0) {
     state.mp += config.MaxMp * 0.03;
@@ -236,7 +243,8 @@ function tick(state) {
   }
 }
 
-function phase(state, spell) {
+Sim.prototype.phase = function(spell) {
+  var state = this.state;
   // console.log('phase', state, spell);
   if(spell.type == "CONVERT") {
     if(state.stack > 0) {
@@ -253,14 +261,13 @@ function phase(state, spell) {
       state.enochian = true;
       state.polyglot = 30;
     } else {
-      logger.error("Enochian has no effect!");
+      this.logger.error("Enochian has no effect!");
     }
     return;
   }
   if(spell.type == 'FOUL') {
     if(!state.foul) {
-      logger.error("phase foul: no foul.")
-      process.exit(1);
+      this.logger.error("phase foul: no foul.")
     }
     state.foul = false;
   }
@@ -286,7 +293,7 @@ function phase(state, spell) {
     state.stack += (spell.type==='FIRE'?1:-1);
   } else {
     if(state.phaseTimer <= 0) {
-      logger.error('dropping phase!!')
+      this.logger.error('dropping phase!!')
       state.stack = 0;
     }
     if(state.stack > 0 && spell.type === 'FIRE') {
@@ -313,7 +320,9 @@ function phase(state, spell) {
   }
 }
 
-var next = function(state) {
+var next = function(inst) {
+  var state = inst.state;
+  var cast = inst.cast.bind(inst);
   if(state.animation > 0) {
     return 1;
   }
@@ -324,16 +333,15 @@ var next = function(state) {
     var b3 = skills['Blizzard III'](state);
     if(state.stack < 0) {
       var eno = skills['Enochian'](state);
-      cast(state, eno);
+      cast(eno);
       state.init = false;
       return 1;
     }
-    cast(state, b3);
+    cast(b3);
     return;
   }
   if(state.phaseTimer <= 0) {
-    logger.error("dropped phase timer!!!!")
-    process.exit(1);
+    inst.logger.error("dropped phase timer!!!!")
   }
   var stack = state.stack;
   if(state.stack > 0) {
@@ -347,16 +355,16 @@ var next = function(state) {
     var t3 = skills['Thunder III'](state);
     if(t3.mp == 0 && f3.mp == 0 && state.phaseTimer > 2 * config.gcd) {
       // console.log('use t3p');
-      cast(state, t3);
+      cast(t3);
     } else if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
-      cast(state, f4);
+      cast(f4);
     } else if(f3.mp == 0) {
       // console.log('use f3p');
-      cast(state, f3);
+      cast(f3);
     } else if(f1.mp + b3.mp < state.mp) {
-      cast(state, f1);
+      cast(f1);
     } else {
-      cast(state, b3);
+      cast(b3);
     }
   } else if (state.stack < 0) {
     if(state.gcd > 0) {
@@ -369,24 +377,24 @@ var next = function(state) {
     var convert = skills['Convert'](state);
     var foul = skills['Foul'](state);
     if(state.foul && state.polyglot < 3*config.gcd) {
-      cast(state, foul);
+      cast(foul);
       return 1;
     }
     if(state.umbralhearts < 3 && state.mp > b4.mp) {
-      cast(state, b4);
+      cast(b4);
       return 1;
     }
     if(state.mp > t3.mp && 
-      (!target.dots['Thunder III'] || target.dots['Thunder III'].duration < 12)) {
-      cast(state, t3);
+      (!inst.target.dots['Thunder III'] || inst.target.dots['Thunder III'].duration < 12)) {
+      cast(t3);
       return 1;
     }
-    if(t3.mp == 0 && state.phaseTimer > (f3.cast + config.gcd) && target.dots['Thunder III'].duration <= 21) {
-      cast(state, t3);
+    if(t3.mp == 0 && state.phaseTimer > (f3.cast + config.gcd) && inst.target.dots['Thunder III'].duration <= 21) {
+      cast(t3);
       return 1;
     }
     if(state.foul) {
-      cast(state, foul);
+      cast(foul);
       return 1;
     }
     if(state.mp < b1.mp) {
@@ -394,28 +402,39 @@ var next = function(state) {
     }
     var mpgain = Math.floor(config.MaxMp * config.UIMPBonus[Math.abs(state.stack) - 1]);
     if(state.mp < config.MaxMp) {
-      cast(state, b1);
+      cast(b1);
     } else {
       if(f3.mp == 0) {
-        cast(state, convert);
+        cast(convert);
       } else {
-        cast(state, f3);
+        cast(f3);
       }
     }
   } else {
-    logger.log(state);
+    inst.logger.log(state);
     // var b3 = skills['Blizzard III'](state);
-    // cast(state, b3);
+    // cast(b3);
   }
   return 1;
 };
 
-for(var i = 0; i < config.fightDuration*100; ++i) {
-  tick(state);
-  var n = next(state);
+Sim.prototype.loop = function() {
+  var state = this.state;
+  for(var i = 0; i < config.fightDuration*100; ++i) {
+    this.tick(state);
+    var n = next(this);
+  }
 }
-logger.info("potency", state.potency);
-logger.info("crit rate", parseInt(state.crits/state.hits*1000)/10);
-logger.info("direct hit rate", parseInt(state.dhs/state.hits*1000)/10);
-logger.info("# of spells cast", state.casts);
-logger.info("pps", state.potency/state.time);
+
+Sim.prototype.stats = function() {
+  return {
+    "potency": state.potency,
+    "critRate": parseInt(state.crits/state.hits*1000)/10,
+    "dhRate": parseInt(state.dhs/state.hits*1000)/10,
+    "casts": state.casts,
+    "pps": state.potency/state.time,
+  };
+}
+
+
+module.exports = Sim;
