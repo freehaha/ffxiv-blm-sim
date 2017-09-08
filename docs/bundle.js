@@ -392,10 +392,16 @@ function Config() {
     c.value = ko.observable();
     c.value(config[c.configKey]);
   }
+  this.potency = ko.observable(0);
+  this.critRate = ko.observable(0);
+  this.dhRate = ko.observable(0);
+  this.casts = ko.observable(0);
+  this.pps = ko.observable(0);
   return this;
 }
 
 Config.prototype.run = function() {
+  var self = this;
   document.getElementById('log').innerHTML = "running...";
   worker = new SimWorker();
   worker.addEventListener('message', function(event) {
@@ -421,11 +427,11 @@ Config.prototype.run = function() {
       var state = data.state;
       var stats = data.stats;
 
-      document.getElementById('ptotal').innerHTML = stats.potency;
-      document.getElementById('chr').innerHTML = stats.critRate;
-      document.getElementById('dhr').innerHTML = stats.dhRate;
-      document.getElementById('casts').innerHTML = stats.casts;
-      document.getElementById('pps').innerHTML = stats.pps;
+      self.potency(stats.potency);
+      self.critRate(stats.critRate);
+      self.dhRate(stats.dhRate);
+      self.casts(stats.casts);
+      self.pps(stats.pps);
     }
   });
   for(var c of this.configs) {
