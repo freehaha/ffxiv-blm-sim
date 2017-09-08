@@ -13,8 +13,8 @@ var Sim = function(options) {
   this.state = options.state || new State();
   var logger = new util.ConsoleLogger(this.state);
   this.logger = options.logger || logger;
-  this.logger.info('tick ', this.state.tick);
-  this.logger.info('dot tick ', this.state.dotTick);
+  this.logger.info('tick init', this.state.tick);
+  this.logger.info('dot tick init', this.state.dotTick);
   this.target = {
     dots: {}
   };
@@ -199,7 +199,7 @@ Sim.prototype.tick = function () {
 
   if(state.dotTick >= 3) {
     state.dotTick = 0;
-    this.logger.info('dot tick!');
+    this.logger.info('== dot tick ==');
     // dot tick
     for(var d in this.target.dots) {
       var dot = this.target.dots[d];
@@ -227,7 +227,7 @@ Sim.prototype.tick = function () {
   if(state.tick < 3) {
     return;
   }
-  this.logger.info('tick!');
+  this.logger.info('== tick == ');
   state.tick = 0;
 
   // restore mp

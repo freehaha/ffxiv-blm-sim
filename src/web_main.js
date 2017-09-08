@@ -44,7 +44,7 @@ function Config() {
       configKey: 'simulateDirecthit',
     },
     {
-      label: "Fight length",
+      label: "Fight length(seconds)",
       type: 'number',
       configKey: 'fightDuration',
     },
