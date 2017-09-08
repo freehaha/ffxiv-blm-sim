@@ -391,12 +391,13 @@ var next = function() {
       cast(t3);
       return 1;
     }
-    if(t3.mp == 0 && state.phaseTimer > (f3.cast + this.config.gcd) && this.target.dots['Thunder III'].duration <= 21) {
-      cast(t3);
-      return 1;
-    }
     if(state.foul) {
       cast(foul);
+      return 1;
+    }
+    if(t3.mp == 0 && state.phaseTimer > (f3.cast + this.config.gcd)
+      && this.target.dots['Thunder III'].duration <= 21) {
+      cast(t3);
       return 1;
     }
     if(state.mp < b1.mp) {
