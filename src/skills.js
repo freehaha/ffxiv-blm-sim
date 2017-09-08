@@ -27,7 +27,12 @@ for(var s of skills) {
       skill.recast = s.recast || state.config.gcd;
       skill.animation = s.animation;
       skill.require = s.require;
-      if(s.iv) {
+      if(skill.gcd && skill.cast) {
+        skill.cast = state.config.gcd;
+      }
+      if(s.iii) {
+        skill.cast = state.config.iiicast;
+      } else if(s.iv) {
         skill.cast = state.config.ivcast;
       }
       if(s.dot) {

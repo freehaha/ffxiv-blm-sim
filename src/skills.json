@@ -40,7 +40,8 @@
     "cast": 3.5,
     "gcd": true,
     "type": "ICE",
-    "animation": 0.1
+    "animation": 0.1,
+    "iii": true
   },
   {
     "name": "Blizzard IV",
@@ -69,7 +70,8 @@
         "consumes": ["Firestarter"],
         "animation": 0.75
       }
-    ]
+    ],
+    "iii": true
   },
   {
     "name": "Thunder III",
