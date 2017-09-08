@@ -2,30 +2,30 @@ var config = require('./config');
 var INIT_TICK = Math.floor(Math.random()*100 + 1)/100 * 3;
 var INIT_DOTTICK = Math.floor(Math.random()*100 + 1)/100 * 3;
 
-var state = {
-  casts: 0,
-  hits: 0,
-  crits: 0,
-  dhs: 0,
-  phase: "NONE",
-  init: true,
-  stack: 0,
-  animation: 0,
-  phaseTimer: 0,
-  time: 0,
-  gcd: 0,
-  tick: 0 - INIT_TICK,
-  dotTick: 0 - INIT_DOTTICK,
-  mp: config.MaxMp,
-  potency: 0,
-  procs: {},
-  recast: {},
-  enochian: false,
-  umbralhearts: 0,
-  polyglot: 0,
-  casting: 0,
-  foul: false,
-  dmgMod: 1,
-};
+function State() {
+  this.casts = 0;
+  this.hits = 0;
+  this.crits = 0;
+  this.dhs = 0;
+  this.phase = "NONE";
+  this.init = true;
+  this.stack = 0;
+  this.animation = 0;
+  this.phaseTimer = 0;
+  this.time = 0;
+  this.gcd = 0;
+  this.tick = 0 - INIT_TICK;
+  this.dotTick = 0 - INIT_DOTTICK;
+  this.mp = config.MaxMp;
+  this.potency = 0;
+  this.procs = {};
+  this.recast = {};
+  this.enochian = false;
+  this.umbralhearts = 0;
+  this.polyglot = 0;
+  this.casting = 0;
+  this.foul = false;
+  this.dmgMod = 1;
+}
 
-module.exports = state;
+module.exports = State;

@@ -2,17 +2,16 @@ var skills = require('./skills');
 var config = require('./config');
 var sprintf = require('sprintf-js').sprintf;
 var util = require('./util.js');
-var state = require('./state');
-
-var logger = new util.ConsoleLogger(state);
+var State = require('./state');
 
 var Sim = function(options) {
   options = options || {};
   this.options = options;
   this.config = options.config || config;
-  this.logger = options.logger || logger;
   this.next = options.next || next;
-  this.state = options.state || state;
+  this.state = options.state || new State();
+  var logger = new util.ConsoleLogger(this.state);
+  this.logger = options.logger || logger;
   this.logger.info('tick ', this.state.tick);
   this.logger.info('dot tick ', this.state.dotTick);
   this.target = {
@@ -427,6 +426,7 @@ Sim.prototype.loop = function() {
 }
 
 Sim.prototype.stats = function() {
+  var state = this.state;
   return {
     "potency": state.potency,
     "critRate": parseInt(state.crits/state.hits*1000)/10,
