@@ -362,18 +362,45 @@ var next = function() {
     var b3 = skills['Blizzard III'](state);
     var f3 = skills['Fire III'](state);
     var t3 = skills['Thunder III'](state);
-    if(t3.mp == 0 && f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) {
-      // console.log('use t3p');
-      cast(t3);
-    } else if(state.mp > f4.mp + b3.mp && state.phaseTimer > f4.cast + f1.cast) {
+    var f4count = parseInt(state.mp/f4.mp);
+    if(f4count > 4) {
       cast(f4);
-    } else if(f3.mp == 0) {
-      // console.log('use f3p');
-      cast(f3);
-    } else if(f1.mp + b3.mp < state.mp) {
+      return 1;
+    }
+    if(f4count == 4) {
       cast(f1);
+      return 1;
+    }
+    if(f3.mp == 0 && state.procs['Firestarter'] < this.config.ivcast) {
+      cast(f3);
+      return 1;
+    }
+    if(t3.mp > 0) {
+      if(f4count == 0) {
+        cast(b3);
+        return 1;
+      }
+      cast(f4);
+      return 1;
     } else {
-      cast(b3);
+      if(f4count == 0) {
+        cast(b3);
+        return 1;
+      }
+      // have at least 1 tick of T3 or it's not present on target
+      if(this.target.dots['Thunder III'] && this.target.dots['Thunder III'].duration > 21) {
+        cast(f4);
+        return 1;
+      }
+      if(f3.mp == 0 && state.phaseTimer > 2 * this.config.gcd) { // at least 2gcd for t3p + f3p
+        cast(t3);
+        return 1;
+      }
+      if(f4count * f4.cast + b3.cast + this.config.gcd <= state.phaseTimer) {
+        cast(t3);
+        return 1;
+      }
+      cast(f4);
     }
   } else if (state.stack < 0) {
     if(state.gcd > 0) {
@@ -421,9 +448,9 @@ var next = function() {
       }
     }
   } else {
-    this.logger.log(state);
-    // var b3 = skills['Blizzard III'](state);
-    // cast(b3);
+    this.logger.error("no stack!");
+    var b3 = skills['Blizzard III'](state);
+    cast(b3);
   }
   return 1;
 };
