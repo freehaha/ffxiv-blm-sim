@@ -1,5 +1,5 @@
 var Sim = require('./index');
-var SimWorker = require('worker-loader?inline!./sim-worker.js');
+var SimWorker = require('worker-loader?name=sim-worker.js!./sim-worker.js');
 var config = require('./config');
 var worker = null;
 
