@@ -155,6 +155,13 @@ Sim.prototype.tick = function () {
       state.enochian = false;
     }
   }
+  for(var p in state.procs) {
+    state.procs[p] -= 0.01;
+    if(state.procs[p] <= 0) {
+      this.logger.info(p, 'falls off');
+      delete state.procs[p];
+    }
+  }
   state.time += 0.01;
   state.tick += 0.01;
   state.dotTick += 0.01;
