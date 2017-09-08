@@ -5,7 +5,7 @@ affect pps. The rotation it uses currently:
 ```
 Opener: B3 -> Enochian -> B4 -> T3 -> F3
 Rotation: 
-	AF: F3 3xF4 F1 3xF4 (T3P if Firestarter available) F3P
+	AF: F3 3xF4 F1 3xF4 (T3P) (F3P)
 	UI: (Foul if close to overwriting) B4 (T3 if duration is less than 12s) Foul (T3P)
 ```
 
