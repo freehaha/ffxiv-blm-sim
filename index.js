@@ -410,7 +410,7 @@ var next = function(state) {
   return 1;
 };
 
-for(var i = 0; i < 900*100; ++i) {
+for(var i = 0; i < config.fightDuration*100; ++i) {
   tick(state);
   var n = next(state);
 }

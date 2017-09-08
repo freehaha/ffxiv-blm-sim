@@ -11,6 +11,7 @@
   "PhaseDuration": 13,
   "simulateCrit": true,
   "simulateDirecthit": true,
+  "fightDuration": 700,
   "AFBonus": [
     1.4,
     1.6,
