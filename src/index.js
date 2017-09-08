@@ -64,6 +64,31 @@ Sim.prototype.cast = function(spell) {
       }
     }
   }
+  state.recast[spell.name] = spell.recast;
+  state.mp -= spell.mp;
+  state.casting = spell.cast;
+  state.lastSpell = spell;
+  if(spell.gcd) {
+    state.gcd = Math.max(spell.cast, this.config.gcd);
+  }
+  if(spell.cast == 0) {
+    this.casted(state);
+  }
+  state.animation = spell.animation || 0.1;
+  // console.log("anim", state.animation);
+}
+
+Sim.prototype.casted = function() {
+  var state = this.state;
+  if(!state.lastSpell) {
+    return;
+  }
+  if(state.casting > 0) {
+    return;
+  }
+  var spell = state.lastSpell;
+  var potency = spell.potency;
+
   if(spell.dot) {
     var d = spell.dot;
     this.target.dots[spell.name] = {
@@ -92,30 +117,7 @@ Sim.prototype.cast = function(spell) {
       }
     }
   }
-  state.recast[spell.name] = spell.recast;
-  state.mp -= spell.mp;
-  state.casting = spell.cast;
-  state.lastSpell = spell;
-  if(spell.gcd) {
-    state.gcd = Math.max(spell.cast, this.config.gcd);
-  }
-  if(spell.cast == 0) {
-    this.casted(state);
-  }
-  state.animation = spell.animation || 0.1;
-  // console.log("anim", state.animation);
-}
 
-Sim.prototype.casted = function() {
-  var state = this.state;
-  if(!state.lastSpell) {
-    return;
-  }
-  if(state.casting > 0) {
-    return;
-  }
-  var spell = state.lastSpell;
-  var potency = spell.potency;
   if(potency > 0) {
     if(this.config.simulateCrit && this.config.critRate*1000 > rand(1000)) {
       potency += potency * this.config.critDamage;
