@@ -150,7 +150,7 @@ Sim.prototype.tick = function () {
   this.updateDamageMod();
   if(state.phaseTimer > 0) {
     state.phaseTimer -= 0.01;
-    if(state.phaseTimer <= 0) {
+    if(state.phaseTimer < 0.01) {
       state.phaseTimer = 0;
       state.enochian = false;
     }
@@ -166,20 +166,20 @@ Sim.prototype.tick = function () {
   state.tick += 0.01;
   state.dotTick += 0.01;
   state.casting -= 0.01;
-  if(state.casting <= 0) {
+  if(state.casting < 0.01) {
     state.casting = 0;
   }
   this.casted(state);
   state.gcd -= 0.01;
-  if(state.gcd < 0) {
+  if(state.gcd < 0.01) {
     state.gcd = 0;
   }
   state.animation -= 0.01;
-  if(state.animation < 0) {
+  if(state.animation < 0.01) {
     state.animation = 0;
   }
   state.polyglot -= 0.01;
-  if(state.polyglot <= 0 && state.enochian) {
+  if(state.polyglot < 0.01 && state.enochian) {
     state.polyglot = 30.01;
     if(state.foul) {
       this.logger.info("overwriting foul!!")
@@ -189,7 +189,7 @@ Sim.prototype.tick = function () {
   /* recast timers */
   for(var r in state.recast) {
     state.recast[r] -= 0.01;
-    if(state.recast[r] <= 0) {
+    if(state.recast[r] < 0.01) {
       state.recast[r] = 0;
     }
   }
@@ -198,7 +198,7 @@ Sim.prototype.tick = function () {
   remove = [];
   for(var d in this.target.dots) {
     this.target.dots[d].duration -= 0.01;
-    if(this.target.dots[d].duration <= 0) {
+    if(this.target.dots[d].duration < 0.01) {
       remove.push(d);
     }
   }
@@ -457,6 +457,7 @@ Sim.prototype.configure = function(config) {
   // GCD = INT(INT(100 * Special!$B$38  * (int(Special!C$2 * (1000 - INT(Special!$F$22 * ($B20) / Special!$B$1))/1000) / 1000)) / 100)/100
   config.gcd = parseInt(parseInt(100 * 100  * (parseInt(BASE_GCD * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
   config.ivcast = parseInt(parseInt(100 * 100  * (parseInt(2800 * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
+  config.iiicast = parseInt(parseInt(100 * 100  * (parseInt(3500 * (1000 - parseInt(130 * (config.spellSpeed - BASE_SPS) / 2170))/1000) / 1000)) / 100)/100;
   // CHR = (INT(200* crit /2170)+ 50)/1000
   // CHD = (INT(200* crit /2170)+ 400)/1000
   config.critRate = (parseInt(200 * (config.crit - 364) / 2170) + 50) / 1000;
@@ -472,6 +473,7 @@ Sim.prototype.configure = function(config) {
   this.logger.info('dot mod', config.dotMod);
   this.logger.info('gcd', config.gcd);
   this.logger.info('ivcast', config.ivcast);
+  this.logger.info('iiicast', config.iiicast);
 
   this.logger.info('crit', config.crit);
   this.logger.info('crit rate', config.critRate);
