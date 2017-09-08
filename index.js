@@ -33,6 +33,7 @@ function cast(state, spell) {
   }
   logger.info("phase:", state.phase, sprintf("%0.2fs", state.phaseTimer));
   logger.info("start casting", spell.name);
+  state.casts += 1;
   if(spell.require) {
     for(var r of spell.require) {
       if(r == 'enochian') {
@@ -111,11 +112,14 @@ function casted(state) {
     if(config.simulateCrit && config.critRate*1000 > Math.floor(Math.random()*1000)) {
       potency += potency * config.critDamage;
       logger.info("crit!");
+      state.crits += 1;
     }
     if(config.simulateDirecthit && config.dhRate*1000 > Math.floor(Math.random()*1000)) {
       potency += potency * config.dhDamage;
       logger.info("direct hit!");
+      state.dhs += 1;
     }
+    state.hits += 1;
     logger.info(sprintf("cast %s, potency: %d (from %d)", spell.name, potency, spell.potency));
   } else {
     logger.info(sprintf("cast %s, potency: %d", spell.name, spell.potency));
@@ -393,4 +397,7 @@ for(var i = 0; i < 900*100; ++i) {
   var n = next(state);
 }
 logger.info("potency", state.potency);
+logger.info("crit rate", parseInt(state.crits/state.hits*1000)/10);
+logger.info("direct hit rate", parseInt(state.dhs/state.hits*1000)/10);
+logger.info("# of spells cast", state.casts);
 logger.info("pps", state.potency/state.time);

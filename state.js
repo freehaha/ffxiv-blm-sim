@@ -3,6 +3,7 @@ var INIT_TICK = Math.floor(Math.random()*100 + 1)/100 * 3;
 var INIT_DOTTICK = Math.floor(Math.random()*100 + 1)/100 * 3;
 
 var state = {
+  casts: 0,
   hits: 0,
   crits: 0,
   dhs: 0,
