@@ -25,7 +25,7 @@ var next = function() {
   }
   var stack = state.stack;
   if(state.stack > 0) {
-    if(state.gcd > 0) {
+    if(state.gcd > 0 || state.casting) {
       return 1;
     }
     var f1 = skills['Fire'](state);
@@ -74,7 +74,7 @@ var next = function() {
       cast(f4);
     }
   } else if (state.stack < 0) {
-    if(state.gcd > 0) {
+    if(state.gcd > 0 || state.casting) {
       return 1;
     }
     var b1 = skills['Blizzard'](state);

@@ -70,7 +70,7 @@ Sim.prototype.cast = function(spell) {
   state.casting = spell.cast;
   state.lastSpell = spell;
   if(spell.gcd) {
-    state.gcd = Math.max(spell.cast, this.config.gcd);
+    state.gcd = this.config.gcd;
   }
   if(spell.cast == 0) {
     this.casted(state);
@@ -84,7 +84,7 @@ Sim.prototype.casted = function() {
   if(!state.lastSpell) {
     return;
   }
-  if(state.casting > 0) {
+  if(state.casting > -(this.config.castOffset)) {
     return;
   }
   var spell = state.lastSpell;
