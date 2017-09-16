@@ -620,7 +620,7 @@ Sim.prototype.cast = function(spell) {
   state.casting = spell.cast;
   state.lastSpell = spell;
   if(spell.gcd) {
-    state.gcd = Math.max(spell.cast, this.config.gcd);
+    state.gcd = this.config.gcd;
   }
   if(spell.cast == 0) {
     this.casted(state);
@@ -634,7 +634,7 @@ Sim.prototype.casted = function() {
   if(!state.lastSpell) {
     return;
   }
-  if(state.casting > 0) {
+  if(state.casting > -(this.config.castOffset)) {
     return;
   }
   var spell = state.lastSpell;
@@ -954,7 +954,7 @@ module.exports = [{"name":"Fire","potency":180,"mp":1200,"cast":2.5,"gcd":true,"
 /* 7 */
 /***/ (function(module, exports) {
 
-module.exports = {"gcd":2.5,"spellSpeed":1917,"crit":1084,"directhit":1355,"determination":1159,"dhDamage":0.25,"ivgcd":2.8,"animation":0.75,"MaxMp":15480,"PhaseDuration":13,"simulateCrit":true,"simulateDirecthit":true,"fightDuration":700,"AFBonus":[1.4,1.6,1.8],"AFCostFire":[2,2,2],"AFCostIce":[0.5,0.25,0.25],"AFPenalty":[0.9,0.8,0.7],"AFCastBonus":[1,1,0.5],"UIMPBonus":[0.32,0.47,0.62],"UICostFire":[0.5,0.25,0.25],"UIPenalty":[0.9,0.8,0.7],"UICastBonus":[1,1,0.5]}
+module.exports = {"gcd":2.5,"spellSpeed":1917,"crit":1084,"directhit":1355,"determination":1159,"dhDamage":0.25,"ivgcd":2.8,"animation":0.75,"MaxMp":15480,"PhaseDuration":13,"simulateCrit":true,"simulateDirecthit":true,"castDelay":0.1,"castOffset":-0.5,"fightDuration":700,"AFBonus":[1.4,1.6,1.8],"AFCostFire":[2,2,2],"AFCostIce":[0.5,0.25,0.25],"AFPenalty":[0.9,0.8,0.7],"AFCastBonus":[1,1,0.5],"UIMPBonus":[0.32,0.47,0.62],"UICostFire":[0.5,0.25,0.25],"UIPenalty":[0.9,0.8,0.7],"UICastBonus":[1,1,0.5]}
 
 /***/ }),
 /* 8 */
@@ -1326,7 +1326,7 @@ var next = function() {
   }
   var stack = state.stack;
   if(state.stack > 0) {
-    if(state.gcd > 0) {
+    if(state.gcd > 0 || state.casting) {
       return 1;
     }
     var f1 = skills['Fire'](state);
@@ -1375,7 +1375,7 @@ var next = function() {
       cast(f4);
     }
   } else if (state.stack < 0) {
-    if(state.gcd > 0) {
+    if(state.gcd > 0 || state.casting) {
       return 1;
     }
     var b1 = skills['Blizzard'](state);
